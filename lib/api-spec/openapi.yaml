@@ -3,13 +3,15 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Vantage ARS operations and approval API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: vantage-ars
+    description: Owner-approved Vantage ARS operations using connected live services
 paths:
   /healthz:
     get:
@@ -24,7 +26,138 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /vantage-ars/dashboard:
+    get:
+      operationId: getVantageArsDashboard
+      tags: [vantage-ars]
+      summary: Read live service health and operational counts
+      responses:
+        "200":
+          description: Dashboard status from connected services and persisted records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageDashboard"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /vantage-ars/inquiries:
+    get:
+      operationId: listVantageArsInquiries
+      tags: [vantage-ars]
+      summary: List real enquiries imported from Gmail
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, needs_review, needs_information, quote_ready, quote_sent, declined]
+            default: all
+      responses:
+        "200":
+          description: Persisted enquiries and any generated quote proposals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VantageInquiry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /vantage-ars/inquiries/sync:
+    post:
+      operationId: syncVantageArsInquiries
+      tags: [vantage-ars]
+      summary: Read matching live Gmail messages and process them with Grok
+      description: >
+        Imports only matching inbox messages. It never sends email, creates a
+        Gmail draft, or publishes content.
+      responses:
+        "200":
+          description: Live Gmail sync and AI processing results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageSyncResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "502":
+          description: A connected provider returned an error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
+  /vantage-ars/inquiries/{inquiryId}/decision:
+    post:
+      operationId: decideVantageArsQuote
+      tags: [vantage-ars]
+      summary: Approve and send, or decline, an AI-prepared quote
+      description: >
+        An approval sends the quote to the inquiry's stored sender address
+        through Gmail. Bank details are accepted for this request only and are
+        never persisted by the application.
+      parameters:
+        - name: inquiryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VantageQuoteDecisionInput"
+      responses:
+        "200":
+          description: Quote decision result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageQuoteDecisionResult"
+        "400":
+          description: Quote is incomplete or not eligible for the requested action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Enquiry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
+        "502":
+          description: Gmail could not confirm the send result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
 components:
+  responses:
+    Unauthorized:
+      description: Sign-in required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/VantageError"
+    Forbidden:
+      description: This account is not the connected business mailbox owner
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/VantageError"
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +166,188 @@ components:
           type: string
       required:
         - status
+    VantageServiceStatus:
+      type: object
+      properties:
+        id:
+          type: string
+          enum: [gmail, grok, phone, facebook, linkedin]
+        label:
+          type: string
+        status:
+          type: string
+          enum: [connected, attention, not_connected, setup_required]
+        detail:
+          type: string
+      required: [id, label, status, detail]
+    VantageDashboard:
+      type: object
+      properties:
+        services:
+          type: array
+          items:
+            $ref: "#/components/schemas/VantageServiceStatus"
+        counts:
+          type: object
+          properties:
+            needsReview:
+              type: integer
+            needsInformation:
+              type: integer
+            quotesReady:
+              type: integer
+            quotesSent:
+              type: integer
+          required: [needsReview, needsInformation, quotesReady, quotesSent]
+        lastSyncAt:
+          type: [string, "null"]
+          format: date-time
+        rateSourceUrl:
+          type: string
+      required: [services, counts, lastSyncAt, rateSourceUrl]
+    VantageRateLine:
+      type: object
+      properties:
+        code:
+          type: string
+        description:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        unitPrice:
+          type: number
+        total:
+          type: number
+      required: [code, description, quantity, unit, unitPrice, total]
+    VantageQuote:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reference:
+          type: string
+        status:
+          type: string
+          enum: [ready, sent, declined, send_uncertain]
+        currency:
+          type: string
+          enum: [ZAR]
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/VantageRateLine"
+        subtotal:
+          type: number
+        notes:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        sentAt:
+          type: [string, "null"]
+      required: [id, reference, status, currency, lines, subtotal, notes, createdAt, sentAt]
+    VantageInquiry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+          format: email
+        subject:
+          type: string
+        receivedAt:
+          type: string
+          format: date-time
+        summary:
+          type: [string, "null"]
+        category:
+          type: [string, "null"]
+        urgency:
+          type: [string, "null"]
+        status:
+          type: string
+          enum: [processing, needs_review, needs_information, quote_ready, quote_sent, declined]
+        missingInformation:
+          type: array
+          items:
+            type: string
+        messageBody:
+          type: string
+        quote:
+          oneOf:
+            - $ref: "#/components/schemas/VantageQuote"
+            - type: "null"
+      required:
+        [id, customerName, customerEmail, subject, receivedAt, summary, category, urgency, status, missingInformation, messageBody, quote]
+    VantageSyncResult:
+      type: object
+      properties:
+        scanned:
+          type: integer
+        imported:
+          type: integer
+        alreadySeen:
+          type: integer
+        processed:
+          type: integer
+        awaitingGrok:
+          type: integer
+        inquiries:
+          type: array
+          items:
+            $ref: "#/components/schemas/VantageInquiry"
+        message:
+          type: string
+      required: [scanned, imported, alreadySeen, processed, awaitingGrok, inquiries, message]
+    VantageBankDetails:
+      type: object
+      properties:
+        accountName:
+          type: string
+          minLength: 1
+        bankName:
+          type: string
+          minLength: 1
+        accountNumber:
+          type: string
+          minLength: 3
+        branchCode:
+          type: string
+          minLength: 3
+        accountType:
+          type: string
+          minLength: 1
+      required: [accountName, bankName, accountNumber, branchCode, accountType]
+    VantageQuoteDecisionInput:
+      type: object
+      properties:
+        decision:
+          type: string
+          enum: [approve, decline]
+        bankDetails:
+          $ref: "#/components/schemas/VantageBankDetails"
+      required: [decision]
+    VantageQuoteDecisionResult:
+      type: object
+      properties:
+        inquiry:
+          $ref: "#/components/schemas/VantageInquiry"
+        message:
+          type: string
+      required: [inquiry, message]
+    VantageError:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
 
