@@ -114,5 +114,5 @@ Agents act only inside their role. Anything that costs money, risks a customer, 
 - 🐛 [Report an issue](https://github.com/Leonydis138/vantage-ars/issues).
 - 👤 [Explore the creator's projects](https://omgithub.com/Leonydis138).
 - 🌍 [Create with OMGithub](https://omgithub.com).
-- 🧬 [Explore the remix source](https://github.com/Leonydis138/vantage-ars).
+- 🧬 [Explore the remix source](https://github.com/leonydis138/vantage-ars/tree/91853668cbc91760ebb2ac0fd0cc2f5e5395d4b6).
 <!-- omgithub:readme:end -->
