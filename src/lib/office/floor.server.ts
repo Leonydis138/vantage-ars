@@ -5,13 +5,13 @@ import { applyProposedAction, readSnapshot } from "./store.server";
 import { sendCustomerMail } from "./smtp.server";
 
 /**
- * `sendMail: false` is the unattended mode: letters are written as drafts for founder review and
- * nothing is emailed to a customer. The default (founder pressing the button) keeps the old behaviour.
+ * Customer mail is off by default. Only the authenticated founder-triggered
+ * floor run explicitly opts into sending its fixed, reviewed templates.
  */
 export async function operateFloor(
   options: { sendMail?: boolean } = {},
 ): Promise<{ ok: true; briefing: string; executed: number }> {
-  const mail = options.sendMail !== false;
+  const mail = options.sendMail === true;
   const snapshot = await readSnapshot();
   if (snapshot.company.halted) return { ok: true, briefing: "Office is halted.", executed: 0 };
   const tasks = planFloor({
@@ -94,14 +94,29 @@ export async function operateFloor(
       );
     }
     if (task.kind === "diagnose") {
-      const sql = await getSql();
-      await sql`
-        update tickets
-        set status = 'in_progress', summary = ${technicalFix(task.summary)}, updated_at = now()
-        where id = ${task.ticketId} and status = 'open'
-      `;
-      executed += 1;
-      notes.push(`Technical wrote the procedure for ${task.title}. The fault is not marked fixed.`);
+      const result = await applyProposedAction(
+        "forge",
+        {
+          kind: "draft_document",
+          title: `Technical plan · ${task.title}`,
+          rationale: technicalFix(task.summary),
+          confidence: 0.85,
+          amountCents: 0,
+          relatedId: task.ticketId,
+          payload: { kind: "technical_plan" },
+        },
+        { source: "floor" },
+      );
+      if (result.status === "executed") {
+        executed += 1;
+        notes.push(
+          `Technical prepared a draft plan for ${task.title}. Founder approval is required before work starts.`,
+        );
+      } else {
+        notes.push(
+          `The technical plan for ${task.title} was ${result.status}; no work was started.`,
+        );
+      }
     }
   }
   if (!notes.length) notes.push("Nothing new to run. No customers were invented.");

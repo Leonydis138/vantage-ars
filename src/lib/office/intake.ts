@@ -343,6 +343,6 @@ export async function processWebsiteEnquiry(input: {
   }
 
   const { operateFloor } = await import("./floor.server");
-  await operateFloor();
+  await operateFloor({ sendMail: false });
   return { handoff, ticket };
 }

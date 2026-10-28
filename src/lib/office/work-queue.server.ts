@@ -92,35 +92,6 @@ export async function reopenWork(dedupeKey: string, dueInMinutes = 0): Promise<E
 }
 
 /**
- * Put one abandoned item back on the queue.
- *
- * Redrive is a founder action, never an automatic one. The item goes back
- * with its attempt count reset and its error cleared, and the fact that it was
- * redriven is written to the audit chain by the caller.
- */
-export async function redriveWorkById(
-  workId: string,
-): Promise<{ ok: true; kind: string; agentId: string } | { ok: false; error: string }> {
-  const sql = await getSql();
-  const rows = await sql<{ id: string; kind: string; agent_id: string }>`
-    update work_items
-    set status = 'open',
-        attempts = 0,
-        last_error = null,
-        due_at = now(),
-        started_at = null,
-        finished_at = null,
-        updated_at = now()
-    where id = ${workId} and status in ('abandoned', 'failed')
-    returning id, kind, agent_id
-  `;
-  if (!rows.length) {
-    return { ok: false, error: "That item is not in the dead-letter queue." };
-  }
-  return { ok: true, kind: String(rows[0].kind), agentId: String(rows[0].agent_id) };
-}
-
-/**
  * Atomically take the most urgent due item for one agent.
  *
  * `skip locked` means a second concurrent claim skips the row the first worker

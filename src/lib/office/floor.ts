@@ -121,6 +121,11 @@ export function planFloor(input: {
       .filter((item) => item.kind === "service_ack" && item.relatedId)
       .map((item) => item.relatedId),
   );
+  const planned = new Set(
+    input.documents
+      .filter((item) => item.kind === "technical_plan" && item.relatedId)
+      .map((item) => item.relatedId),
+  );
   const leadInbound = new Set(
     input.leads.map((lead) => lead.inboundId).filter((id): id is string => Boolean(id)),
   );
@@ -154,7 +159,7 @@ export function planFloor(input: {
   for (const ticket of input.tickets) {
     if ((ticket.ownerAgent !== "forge" && ticket.ownerAgent !== "keep") || ticket.status !== "open")
       continue;
-    if (ticket.summary.startsWith("FORGE:")) continue;
+    if (ticket.summary.startsWith("FORGE:") || planned.has(ticket.id)) continue;
     tasks.push({
       kind: "diagnose",
       ticketId: ticket.id,

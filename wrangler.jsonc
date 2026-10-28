@@ -13,7 +13,7 @@
     // Your Cloudflare account id (32 hex chars, Dashboard URL segment).
     // Empty here on purpose: set CLOUDFLARE_ACCOUNT_ID in the host env.
     "CLOUDFLARE_ACCOUNT_ID": "",
-    // Workers AI chat model used by the nine AI staff. Override per host
+    // Workers AI chat model used by the ten AI staff. Override per host
     // with WORKERS_AI_MODEL when Cloudflare publishes a better default.
     "WORKERS_AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
   },

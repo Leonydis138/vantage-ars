@@ -27,7 +27,7 @@ export function resolveModelTarget(env: Record<string, string | undefined>): Mod
       provider: "xai",
       url: "https://api.x.ai/v1/chat/completions",
       key: xai,
-      model: "grok-4.5",
+      model: env.XAI_MODEL?.trim() || "grok-4.5",
     };
   return null;
 }

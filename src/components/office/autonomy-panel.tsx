@@ -179,6 +179,7 @@ export function AutonomyPanel({ refreshToken }: { refreshToken?: number }) {
   const overdueMinutes = data.overdueMinutes;
   const stale = data.autonomyOn && (overdueMinutes === null || overdueMinutes > 180);
   const broken = data.consecutiveFailures >= 3;
+  const failedRuns = data.recentRuns.filter((run) => run.status !== "ok");
 
   return (
     <Card>
@@ -194,7 +195,7 @@ export function AutonomyPanel({ refreshToken }: { refreshToken?: number }) {
         </Button>
       </div>
 
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-5">
+      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
         <Stat
           label="Last run"
           value={data.lastTickAt ? formatRelative(data.lastTickAt) : "never"}
@@ -212,7 +213,13 @@ export function AutonomyPanel({ refreshToken }: { refreshToken?: number }) {
           value={String(dueNow.length)}
           hint={`of ${data.dueDuties.length}`}
         />
-        <Stat label="Failed runs" value={String(data.consecutiveFailures)} warn={broken} />
+        <Stat label="Failure streak" value={String(data.consecutiveFailures)} warn={broken} />
+        <Stat
+          label="Failed runs"
+          value={String(failedRuns.length)}
+          hint="of last 8"
+          warn={failedRuns.length > 0}
+        />
       </dl>
 
       {!data.autonomyOn ? (
@@ -244,6 +251,30 @@ export function AutonomyPanel({ refreshToken }: { refreshToken?: number }) {
         </p>
       ) : null}
 
+      <section className="mt-5">
+        <h3 className="font-mono text-[11px] uppercase tracking-[0.16em] text-danger">
+          Recent failed runs
+        </h3>
+        {failedRuns.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">No failed runs in the last eight.</p>
+        ) : (
+          <ul className="mt-2 divide-y divide-border">
+            {failedRuns.map((run) => (
+              <li key={run.id} className="py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-sm text-fg">{run.duty.replace(/_/g, " ")}</p>
+                  <Badge variant="danger">{run.status}</Badge>
+                </div>
+                <p className="mt-1 text-xs text-muted">{run.briefing}</p>
+                <p className="mt-1 font-mono text-[10px] text-subtle">
+                  {run.agentId} · {formatRelative(run.startedAt)} · {run.durationMs}ms
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <section>
           <h3 className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Duties</h3>
@@ -271,7 +302,7 @@ export function AutonomyPanel({ refreshToken }: { refreshToken?: number }) {
 
         <section>
           <h3 className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
-            What it did last
+            Recent runs
           </h3>
           {data.recentRuns.length === 0 ? (
             <p className="mt-2 text-sm text-muted">No autonomous run yet.</p>

@@ -14,7 +14,7 @@ export const Route = createFileRoute("/support")({
     const head = pageHead({
       title: "Customer service · Vantage-ARS",
       description:
-        "Log a fault, a question about work in progress, or a complaint with Vantage-ARS. A short acknowledgement is sent when the matter is received.",
+        "Log a fault, a question about work in progress, or a complaint with Vantage-ARS. The office prepares internal drafts; work requires a founder action.",
       path: "/support",
     });
 
@@ -59,8 +59,9 @@ function SupportDesk() {
             Already a customer? This is the right place.
           </h1>
           <p className="mt-6 max-w-lg text-base leading-relaxed text-muted">
-            Tell us about a fault, a job already underway, or a complaint. We may send a short
-            acknowledgement. It does not refund anything, cancel work, or change a price.
+            Tell us about a fault, a job already underway, or a complaint. The office may prepare
+            internal drafts, but this form does not send a reply or start technical work. Nothing is
+            refunded, cancelled, or repriced by this form.
           </p>
         </div>
 
@@ -69,7 +70,9 @@ function SupportDesk() {
             <dt className="font-mono text-[10px] uppercase tracking-[0.22em] text-subtle">
               What this desk does
             </dt>
-            <dd className="mt-1 text-muted">Records the matter for a person to review.</dd>
+            <dd className="mt-1 text-muted">
+              Records the matter and prepares it for founder review.
+            </dd>
           </div>
           <div>
             <dt className="font-mono text-[10px] uppercase tracking-[0.22em] text-subtle">
@@ -132,7 +135,7 @@ function SupportDesk() {
           matters={MATTERS}
           submitLabel="Send to the desk"
           doneTitle="Recorded."
-          doneBody="Recorded. If mail is connected, a short acknowledgement is sent. Nothing has been refunded, cancelled, or quoted."
+          doneBody="Recorded for founder review. No automatic reply is sent and no work starts on your systems. Nothing has been refunded, cancelled, or quoted."
           nameMinLength={2}
           nameMaxLength={160}
           errorMessage="The desk could not record this. Try again in a moment."

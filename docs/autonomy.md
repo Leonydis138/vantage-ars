@@ -94,23 +94,23 @@ outside its owner's role.
 | SIGNAL  | `signal_qualify_leads`        | 3h      | Scores every lead on what the buyer actually wrote                                                                                                                                                           |
 | SIGNAL  | `signal_handoff`              | 2h      | Files a founder-gated sales handoff for genuine buying intent                                                                                                                                                |
 | CLOSE   | `close_discovery`             | 4h      | Opens a qualified lead that came in through a real channel, and writes a discovery checklist against a live opportunity                                                                                      |
-| CLOSE   | `close_quote`                 | 60m     | Issues a published-rate quote for a real enquiry when a delegation covers quoting. Human-delivered plans are held for the founder; the line comes from the quote playbook, never from the model.              |
+| CLOSE   | `close_quote`                 | 60m     | Issues a published-rate quote for a real enquiry when a delegation covers quoting. Human-delivered plans are held for the founder; the line comes from the quote playbook, never from the model.             |
 | CLOSE   | `close_quote_followup`        | 12h     | Drafts a follow-up once a real quote has waited two days                                                                                                                                                     |
 | CLOSE   | `close_stale_proposal`        | 24h     | Reports a proposal with no movement for fourteen days                                                                                                                                                        |
 | CLOSE   | `close_win_handoff`           | 60m     | Flags a won deal with delivery open and no invoice                                                                                                                                                           |
 | CLOSE   | `close_quote_notice`          | 2h      | Emails approved quotes and sends an approved, scope-specific observation checklist after an accepted diagnostic quote. Customer mail requires an active email delegation.                                    |
-| DESK    | `desk_acknowledge`            | 30m     | Drafts an acknowledgement for an unanswered service request                                                                                                                                                  |
+| DESK    | `desk_acknowledge`            | 30m     | Drafts an acknowledgement for an unanswered service request; does not send it or start work                                                                                                                  |
 | DESK    | `desk_sla_watch`              | 2h      | Escalates tickets past their severity's time limit                                                                                                                                                           |
 | DESK    | `desk_chat_reply`             | 15m     | Drafts a reply to a chat that has been waiting                                                                                                                                                               |
 | DESK    | `desk_service_fulfilment`     | 60m     | Produces the deliverable for an invoiced period from the office's own records and files it as a document. The agent never writes it.                                                                         |
 | DESK    | `desk_service_notice`         | 60m     | Emails the customer the report for a delivered period, from the office's own template, to an address already on file                                                                                         |
-| FORGE   | `forge_diagnose`              | 30m     | Writes a procedure against an open fault. Never marks it fixed                                                                                                                                               |
+| FORGE   | `forge_diagnose`              | 30m     | Files an internal technical-plan draft against an open fault. Does not start work or mark it fixed                                                                                                           |
 | FORGE   | `forge_knowledge`             | 24h     | Turns a resolved fault's procedure into knowledge-base text                                                                                                                                                  |
 | LEDGER  | `ledger_chase_invoice`        | 24h     | Drafts a reminder for an invoice unpaid after seven days                                                                                                                                                     |
 | LEDGER  | `ledger_payment_notices`      | 2h      | Matches a payment notice to an invoice to the cent and books the receipt, or puts the notice in front of the founder                                                                                         |
 | LEDGER  | `ledger_payables`             | 24h     | Reports money owed out, for the founder to schedule                                                                                                                                                          |
 | LEDGER  | `ledger_start_subscription`   | 4h      | Starts an eligible record-based plan the customer bought: a won opportunity with an accepted quote and no subscription yet                                                                                   |
-| LEDGER  | `ledger_subscription_billing` | 60m     | Invoices eligible record-based subscriptions whose own billing date has passed, using the period the subscription says                                                                                      |
+| LEDGER  | `ledger_subscription_billing` | 60m     | Invoices eligible record-based subscriptions whose own billing date has passed, using the period the subscription says                                                                                       |
 | LEDGER  | `ledger_dunning`              | 4h      | Reminds a customer about an invoice open for seven days or more, and only while a delegation allows it. After nine weeks the office stops emailing about it and the invoice is left to the founder.          |
 | LEDGER  | `ledger_billing`              | 30m     | Invoices accepted work from the quoted figure under billing delegation. Diagnostic quotes wait until their linked delivery ticket is resolved; invoices and receipts are emailed only under mail delegation. |
 | KEEP    | `keep_records`                | 12h     | Reports a won deal with no quote, invoice or receipt filed                                                                                                                                                   |
@@ -130,6 +130,12 @@ founder has already authorised, score, and file internal briefs.
 **Agents may not** — email a customer, spend money, win or lose a customer, issue
 an invoice, or publish anything. Each of those is an escalation, and every
 escalation is a founder approval with the constitutional trace attached.
+
+On a support case, DESK may file an unsent acknowledgement and FORGE may file a
+technical-plan draft. Neither changes the ticket status. The founder starts work
+from the service desk and marks a case resolved only after reviewing the
+outcome. Public support submissions run the floor in draft-only mode: they do
+not send email or initiate technical work.
 
 That is the default, and the office ships with it. ART-13 lets the founder
 change it once, in advance, for a bounded class of work. A delegation is the

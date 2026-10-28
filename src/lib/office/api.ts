@@ -735,10 +735,9 @@ export const runFloor = createServerFn({ method: "POST" })
     const snapshot = await readSnapshot();
     if (snapshot.company.halted)
       return emptyFail("Office is halted. Resume before running the floor.");
-    // The founder button runs the floor path (operateFloor). The scheduler's
-    // unattended path (tick / runNow) is invoked independently by the cron and
-    // by runAutonomy, so the button does not double-run duties already due.
-    const result = await operateFloor();
+    // The founder-triggered run is the only floor path that opts into sending
+    // the floor's fixed customer-mail templates.
+    const result = await operateFloor({ sendMail: true });
     return {
       ok: true,
       briefing: result.briefing,

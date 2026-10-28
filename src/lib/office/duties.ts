@@ -1353,10 +1353,15 @@ function planChatReply(view: DutyView): PlannedWork[] {
 }
 
 function planDiagnose(view: DutyView): PlannedWork[] {
+  const planned = new Set(
+    view.documents
+      .filter((document) => document.kind === "technical_plan" && document.relatedId)
+      .map((document) => document.relatedId as string),
+  );
   return view.tickets
     .filter((ticket) => ticket.ownerAgent === "forge" || ticket.ownerAgent === "keep")
     .filter((ticket) => ticket.status === "open")
-    .filter((ticket) => !ticket.summary.startsWith("FORGE:"))
+    .filter((ticket) => !ticket.summary.startsWith("FORGE:") && !planned.has(ticket.id))
     .map((ticket) => ({
       agentId: ticket.ownerAgent === "keep" ? "keep" : "forge",
       kind: "diagnose_ticket",
@@ -1376,8 +1381,15 @@ function planKnowledge(view: DutyView): PlannedWork[] {
   const written = new Set(
     view.documents.filter((doc) => doc.kind === "knowledge").map((doc) => doc.relatedId),
   );
+  const procedures = new Set(
+    view.documents.filter((doc) => doc.kind === "technical_plan").map((doc) => doc.relatedId),
+  );
   return view.tickets
-    .filter((ticket) => ticket.status === "resolved" && ticket.summary.startsWith("FORGE:"))
+    .filter(
+      (ticket) =>
+        ticket.status === "resolved" &&
+        (ticket.summary.startsWith("FORGE:") || procedures.has(ticket.id)),
+    )
     .filter((ticket) => !written.has(ticket.id))
     .map((ticket) => ({
       agentId: "forge",

@@ -284,7 +284,8 @@ the office verification on every push to `main` and every pull request.
 
 - [docs/autonomy.md](docs/autonomy.md): every duty, every brake, and why.
 - [docs/autonomy-runbook.md](docs/autonomy-runbook.md): the switches that make the office run itself, per deploy target.
-- [docs/autonomy-roadmap.md](docs/autonomy-roadmap.md): what is verified running today, and the ordered increments to a fully unattended office.
+- [docs/autonomy-roadmap.md](docs/autonomy-roadmap.md): historical production evidence and the ordered increments to a fully unattended office.
+- [docs/runtime-inventory.md](docs/runtime-inventory.md): repository-verified agents, workflows, integrations and production evidence gaps.
 - [docs/governance-architecture.md](docs/governance-architecture.md): the five planes, the risk tiers, the dead-letter queue, and what is deliberately not implemented.
 - [docs/deploy-vercel.md](docs/deploy-vercel.md): environment, cutover, verification.
 - [docs/business-scope-and-competitive-pricing.md](docs/business-scope-and-competitive-pricing.md): scope, rates and department boundaries.

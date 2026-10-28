@@ -22,8 +22,10 @@ app" below).
 Automatic: pushing changes under `workers/vantage-ars/**` to `main` runs
 `.github/workflows/deploy-vantage-ars.yml`, which applies the schema/seed to
 the remote D1 and deploys the Worker. Requires repo secret
-`CLOUDFLARE_API_TOKEN` (scoped to Workers Scripts Edit + D1 Edit). The account
-ID lives in `wrangler.toml`.
+`CLOUDFLARE_API_TOKEN` with only the required Workers Scripts Edit and D1 Edit
+permissions, scoped in Cloudflare to the account and resources used by this
+Worker. The workflow exposes the secret only to the D1 and deploy steps, not
+dependency installation. The account ID lives in `wrangler.toml`.
 
 Manual:
 
