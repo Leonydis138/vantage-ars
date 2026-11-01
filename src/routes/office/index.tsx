@@ -19,8 +19,6 @@ export const Route = createFileRoute("/office/")({
 
 function CommandCenter() {
   const snapshot = useOfficeSnapshot();
-  // Bumped after anything that changes the scheduler, so the autonomy panel
-  // re-reads instead of showing the previous run's numbers.
   const [pulse, setPulse] = useState(0);
   const refresh = useCallback(() => setPulse((value) => value + 1), []);
   const pending = snapshot.approvals.filter((a) => a.status === "pending");
@@ -42,7 +40,7 @@ function CommandCenter() {
       />
       <MailNote notices={snapshot.notices} mail={snapshot.mail} />
 
-      <div className="mb-6 grid gap-px overflow-hidden rounded-xl bg-border shadow-[var(--shadow-border)] sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric
           label="Treasury"
           value={formatZar(snapshot.company.treasuryCents)}
@@ -107,9 +105,14 @@ function CommandCenter() {
 
       <OperationsPulseBoard snapshot={snapshot} />
 
+      <section className="mb-6 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <ExecutiveOverview snapshot={snapshot} pending={pending.length} openTickets={openTickets} />
+        <PriorityQueue snapshot={snapshot} />
+      </section>
+
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
         <DispatchPanel />
-        <Card>
+        <Card className="border border-border/70 bg-surface/70 shadow-[0_16px_44px_-34px_rgba(72,217,255,0.4)]">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Needs you</p>
           <h2 className="mt-1 font-serif text-2xl text-fg">Your desk</h2>
           <ul className="mt-4 space-y-3">
@@ -219,6 +222,134 @@ function CommandCenter() {
   );
 }
 
+function ExecutiveOverview({
+  snapshot,
+  pending,
+  openTickets,
+}: {
+  snapshot: ReturnType<typeof useOfficeSnapshot>;
+  pending: number;
+  openTickets: number;
+}) {
+  const treasury = snapshot.company.treasuryCents;
+  const receivable = snapshot.company.receivableCents;
+  const visibleRisk = Math.min(
+    100,
+    Math.round(
+      ((snapshot.decisions.filter((d) => d.status === "blocked").length + pending + Math.max(0, openTickets - 2)) /
+        Math.max(1, snapshot.decisions.length + snapshot.approvals.length + snapshot.tickets.length)) *
+        100,
+    ),
+  );
+
+  const bands = [
+    {
+      label: "Cash guard",
+      value: formatZar(Math.max(0, treasury)),
+      detail: `${formatZar(receivable)} due in`,
+      tone: treasury > 0 ? "ok" : "warn",
+    },
+    {
+      label: "Governance",
+      value: `${Math.max(12, 100 - visibleRisk)}%`,
+      detail: `${pending} awaiting founder signoff`,
+      tone: pending > 0 ? "warn" : "ok",
+    },
+    {
+      label: "Delivery",
+      value: `${Math.min(100, Math.round((snapshot.agents.filter((a) => a.status !== "halted").length / Math.max(1, snapshot.agents.length)) * 100))}%`,
+      detail: `${snapshot.agents.length} live identities`,
+      tone: "ok",
+    },
+  ];
+
+  return (
+    <Card className="border border-border/70 bg-surface/70 shadow-[0_18px_52px_-38px_rgba(72,217,255,0.45)]">
+      <div className="flex items-center justify-between gap-3 border-b border-border pb-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Executive overview</p>
+          <h2 className="mt-2 font-serif text-2xl text-fg">Operating posture</h2>
+        </div>
+        <Badge variant={visibleRisk > 55 ? "warn" : "ok"}>{visibleRisk > 55 ? "Watchlist" : "Stable"}</Badge>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        {bands.map((band) => (
+          <div
+            key={band.label}
+            className={cn(
+              "rounded-2xl border p-3",
+              band.tone === "warn"
+                ? "border-warn/35 bg-warn/5"
+                : "border-border bg-raised/30",
+            )}
+          >
+            <p className="text-[10px] uppercase tracking-[0.16em] text-muted">{band.label}</p>
+            <p className="mt-2 font-mono text-xl text-fg">{band.value}</p>
+            <p className="mt-1 text-xs text-subtle">{band.detail}</p>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function PriorityQueue({ snapshot }: { snapshot: ReturnType<typeof useOfficeSnapshot> }) {
+  const priorities = [
+    {
+      label: "Founder approvals",
+      value: snapshot.approvals.filter((a) => a.status === "pending").length,
+      tone: "warn",
+    },
+    {
+      label: "Blocked decisions",
+      value: snapshot.decisions.filter((d) => d.status === "blocked").length,
+      tone: "danger",
+    },
+    {
+      label: "Open tickets",
+      value: snapshot.tickets.filter((t) => t.status !== "resolved").length,
+      tone: "warn",
+    },
+    {
+      label: "Incoming leads",
+      value: snapshot.inbound.filter((i) => i.status === "received").length,
+      tone: "ok",
+    },
+  ];
+
+  return (
+    <Card className="border border-border/70 bg-surface/70 shadow-[0_18px_52px_-38px_rgba(72,217,255,0.45)]">
+      <div className="flex items-center justify-between gap-3 border-b border-border pb-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Priority queue</p>
+          <h2 className="mt-2 font-serif text-2xl text-fg">Watch list</h2>
+        </div>
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">Live</span>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {priorities.map((item) => (
+          <div
+            key={item.label}
+            className="flex items-center justify-between rounded-2xl border border-border bg-raised/25 px-3 py-2.5"
+          >
+            <span className="text-sm text-fg">{item.label}</span>
+            <span
+              className={cn(
+                "font-mono text-sm tabular-nums",
+                item.tone === "danger" ? "text-danger" : item.tone === "warn" ? "text-warn" : "text-ok",
+              )}
+            >
+              {item.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 function OperationsPulseBoard({ snapshot }: { snapshot: ReturnType<typeof useOfficeSnapshot> }) {
   const approvalsPending = snapshot.approvals.filter((a) => a.status === "pending").length;
   const blockedDecisions = snapshot.decisions.filter((d) => d.status === "blocked").length;
@@ -264,7 +395,7 @@ function OperationsPulseBoard({ snapshot }: { snapshot: ReturnType<typeof useOff
   ];
 
   return (
-    <Card className="mb-6 overflow-hidden">
+    <Card className="mb-6 overflow-hidden border border-border/70 bg-surface/70 shadow-[0_18px_52px_-38px_rgba(72,217,255,0.45)]">
       <div className="flex flex-col gap-4 border-b border-border pb-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Mission control</p>
@@ -427,7 +558,7 @@ function Metric({
   warn?: boolean;
 }) {
   return (
-    <div className="bg-surface p-4">
+    <div className="rounded-2xl border border-border/70 bg-surface/80 p-4 shadow-[0_18px_48px_-35px_rgba(72,217,255,0.28)]">
       <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{label}</p>
       <p className={cn("mt-2 font-mono text-2xl tabular-nums", warn ? "text-warn" : "text-fg")}>
         {value}
@@ -457,7 +588,7 @@ function SituationChip({
   return (
     <Link
       to={to}
-      className="inline-flex h-11 items-center gap-2 rounded-full bg-raised px-4 text-sm text-muted hover:text-fg"
+      className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-raised/60 px-4 text-sm text-muted hover:border-accent/25 hover:text-fg"
     >
       <span>{label}</span>
       <span className={cn("font-mono tabular-nums", warn ? "text-warn" : "text-fg")}>{value}</span>
