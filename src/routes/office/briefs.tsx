@@ -16,7 +16,7 @@ function FounderBriefsPage() {
   const snapshot = useOfficeSnapshot();
   const report = Route.useLoaderData();
   const brief = useMemo(() => buildFounderBrief(snapshot), [snapshot]);
-  const [research, setResearch] = useState(report.research);
+  const [research, setResearch] = useState(report?.research ?? []);
   const [loading, setLoading] = useState(false);
   const marketing = useMemo(() => buildMarketingBrief(snapshot, research), [snapshot, research]);
 
@@ -47,6 +47,7 @@ function FounderBriefsPage() {
         <Metric label="Monthly recurring" value={new Intl.NumberFormat("en-ZA", { style: "currency", currency: "ZAR", maximumFractionDigits: 0 }).format(brief.metrics.monthlyRecurringCents / 100)} />
       </div>
 
+      {report ? (
       <Card className="mb-6 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -85,6 +86,7 @@ function FounderBriefsPage() {
           </p>
         ) : null}
       </Card>
+      ) : null}
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card className="p-5">

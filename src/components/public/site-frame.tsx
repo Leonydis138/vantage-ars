@@ -1,5 +1,22 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  Activity,
+  ArrowRight,
+  BadgeDollarSign,
+  BookOpen,
+  ChevronDown,
+  FileText,
+  Gauge,
+  Headphones,
+  Menu as MenuIcon,
+  MessageCircle,
+  Network,
+  Search,
+  ShieldCheck,
+  Workflow,
+  X,
+} from "lucide-react";
 import { WatchtowerMark } from "@/components/brand/mark";
 import { PUBLIC_EMAIL } from "@/lib/office/company";
 import { formatNowClock } from "@/lib/office/money";
@@ -10,11 +27,11 @@ import { SERVICE_PAGES } from "@/lib/site/services";
 import { PUBLISHED_RATES } from "@/lib/office/catalogue";
 
 const nav = [
-  { to: "/services", hash: undefined, label: "Services" },
-  { to: "/find", hash: undefined, label: "Find help" },
-  { to: "/automation", hash: undefined, label: "AI automation" },
-  { to: "/rates", hash: undefined, label: "Rates" },
-  { to: "/support", hash: undefined, label: "Service desk" },
+  { to: "/services", hash: undefined, label: "Services", Icon: Network },
+  { to: "/find", hash: undefined, label: "Find help", Icon: Search },
+  { to: "/automation", hash: undefined, label: "AI automation", Icon: Workflow },
+  { to: "/rates", hash: undefined, label: "Rates", Icon: BadgeDollarSign },
+  { to: "/support", hash: undefined, label: "Service desk", Icon: Headphones },
 ] as const;
 
 const exploreSections = [
@@ -23,9 +40,9 @@ const exploreSections = [
     title: "Start with the problem",
     note: "Not sure what the fault is called? Begin with what you notice.",
     links: [
-      { to: "/find", label: "Find the right service" },
-      { to: "/assess", label: "Assess IT readiness" },
-      { to: "/support", label: "Ask the service desk" },
+      { to: "/find", label: "Find the right service", Icon: Search },
+      { to: "/assess", label: "Assess IT readiness", Icon: Gauge },
+      { to: "/support", label: "Ask the service desk", Icon: Headphones },
     ],
   },
   {
@@ -33,11 +50,11 @@ const exploreSections = [
     title: "See the shape of the work",
     note: "Understand the scope, boundaries and published price first.",
     links: [
-      { to: "/services", label: "Browse service lines" },
-      { to: "/rates", label: "See published rates" },
-      { to: "/automation", label: "Explore AI automation" },
-      { to: "/tools/email-auth", label: "Check email authentication" },
-      { to: "/tools/network-path", label: "Check a network path" },
+      { to: "/services", label: "Browse service lines", Icon: Network },
+      { to: "/rates", label: "See published rates", Icon: BadgeDollarSign },
+      { to: "/automation", label: "Explore AI automation", Icon: Workflow },
+      { to: "/tools/email-auth", label: "Check email authentication", Icon: ShieldCheck },
+      { to: "/tools/network-path", label: "Check a network path", Icon: Activity },
     ],
   },
   {
@@ -45,9 +62,9 @@ const exploreSections = [
     title: "Follow the thinking",
     note: "Read practical guides and see how the desk operates.",
     links: [
-      { to: "/guides", label: "Read the guides" },
-      { to: "/work", label: "See the work" },
-      { to: "/model", label: "How the office works" },
+      { to: "/guides", label: "Read the guides", Icon: BookOpen },
+      { to: "/work", label: "See the work", Icon: FileText },
+      { to: "/model", label: "How the office works", Icon: Workflow },
     ],
   },
 ] as const;
@@ -145,7 +162,7 @@ export function PublicFrame({ children }: { children: ReactNode }) {
           </Link>
 
           <nav aria-label="Main navigation" className="hidden items-center gap-3 lg:flex xl:gap-5">
-            {nav.map((item) => (
+            {nav.map(({ Icon, ...item }) => (
               <Link
                 key={item.label}
                 to={item.to}
@@ -153,17 +170,16 @@ export function PublicFrame({ children }: { children: ReactNode }) {
                 aria-current={
                   pathname === item.to || pathname.startsWith(`${item.to}/`) ? "page" : undefined
                 }
-                className="nav-link rounded-sm py-2 text-[13px] font-medium"
+                className="nav-link inline-flex items-center gap-1.5 rounded-sm py-2 text-[13px] font-medium"
               >
+                <Icon className="size-3.5 opacity-75" aria-hidden="true" />
                 {item.label}
               </Link>
             ))}
-            <details className="site-more-menu site-flow-menu relative">
+            <details className="site-more-menu site-flow-menu group relative">
               <summary className="nav-link flex cursor-pointer list-none items-center gap-1 rounded-sm py-2 text-[13px] font-medium">
-                Route map{" "}
-                <span aria-hidden="true" className="text-[10px]">
-                  ⌄
-                </span>
+                Route map
+                <ChevronDown className="size-3.5 transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
               </summary>
               <div className="site-more-popover site-flow-popover absolute right-0 z-40 mt-4 w-[min(58rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border shadow-[var(--shadow-panel)]">
                 <div className="site-flow-heading">
@@ -222,8 +238,9 @@ export function PublicFrame({ children }: { children: ReactNode }) {
                             }}
                             className="site-more-link"
                           >
+                            <item.Icon className="size-4 shrink-0 text-accent/70" aria-hidden="true" />
                             <span>{item.label}</span>
-                            <span aria-hidden="true">↗</span>
+                            <ArrowRight className="size-3.5 shrink-0 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                           </Link>
                         ))}
                       </div>
@@ -238,9 +255,10 @@ export function PublicFrame({ children }: { children: ReactNode }) {
             </details>
             <button
               type="button"
-              className="nav-link text-[13px] font-medium"
+              className="nav-link inline-flex items-center gap-1.5 text-[13px] font-medium"
               onClick={() => window.dispatchEvent(new Event("vantage-open-chat"))}
             >
+              <MessageCircle className="size-3.5 opacity-75" aria-hidden="true" />
               Chat
             </button>
           </nav>
@@ -252,7 +270,7 @@ export function PublicFrame({ children }: { children: ReactNode }) {
               hash="enquiry"
               className="cta hidden h-10 items-center rounded-md px-4 text-sm font-medium lg:inline-flex"
             >
-              Get a quote
+              Get a quote <ArrowRight className="ml-1 size-4" aria-hidden="true" />
             </Link>
 
             <div ref={menuRef} className="relative lg:hidden">
@@ -262,9 +280,14 @@ export function PublicFrame({ children }: { children: ReactNode }) {
                 aria-expanded={menuOpen}
                 aria-controls="mobile-nav"
                 onClick={() => setMenuOpen((open) => !open)}
-                className="cta-ghost flex h-10 cursor-pointer items-center rounded-md px-3 text-sm font-medium"
+                className="cta-ghost flex h-10 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-medium"
               >
-                Menu
+                {menuOpen ? (
+                  <X className="size-4" aria-hidden="true" />
+                ) : (
+                  <MenuIcon className="size-4" aria-hidden="true" />
+                )}
+                {menuOpen ? "Close" : "Menu"}
               </button>
               {/* Always rendered so `aria-controls` resolves even when closed;
                   `hidden` keeps it out of the accessibility tree and layout. */}
@@ -282,7 +305,7 @@ export function PublicFrame({ children }: { children: ReactNode }) {
                         <span>{section.number}</span>
                         {section.title}
                       </p>
-                      {section.links.map((item) => (
+                        {section.links.map(({ Icon, ...item }) => (
                         <Link
                           key={item.to}
                           to={item.to}
@@ -292,8 +315,9 @@ export function PublicFrame({ children }: { children: ReactNode }) {
                               ? "page"
                               : undefined
                           }
-                          className="site-mobile-nav-link block px-3 py-2 text-sm"
+                          className="site-mobile-nav-link flex items-center gap-2.5 rounded-md px-3 py-2 text-sm"
                         >
+                          <Icon className="size-4 shrink-0 text-accent/70" aria-hidden="true" />
                           {item.label}
                         </Link>
                       ))}
@@ -302,21 +326,22 @@ export function PublicFrame({ children }: { children: ReactNode }) {
                 </div>
                 <button
                   type="button"
-                  className="site-mobile-nav-link block w-full rounded-md px-3 py-2.5 text-left text-sm"
+                  className="site-mobile-nav-link flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-left text-sm"
                   onClick={() => {
                     setMenuOpen(false);
                     window.dispatchEvent(new Event("vantage-open-chat"));
                   }}
                 >
+                  <MessageCircle className="size-4" aria-hidden="true" />
                   Chat
                 </button>
                 <Link
                   to="/"
                   hash="enquiry"
                   onClick={() => setMenuOpen(false)}
-                  className="cta mt-2 flex min-h-11 items-center justify-center rounded-md px-3 text-sm font-semibold"
+                  className="cta mt-2 flex min-h-11 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold"
                 >
-                  Get a quote
+                  Get a quote <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
               </nav>
             </div>

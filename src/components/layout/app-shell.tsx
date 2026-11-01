@@ -1,5 +1,29 @@
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import {
+  BarChart3,
+  Bot,
+  BriefcaseBusiness,
+  ClipboardCheck,
+  FileCheck2,
+  FileText,
+  Headphones,
+  Inbox,
+  LayoutDashboard,
+  Library,
+  Menu,
+  MessageCircle,
+  Megaphone,
+  Pause,
+  Play,
+  Repeat2,
+  Scale,
+  ScrollText,
+  SlidersHorizontal,
+  Users,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
 import { WatchtowerMark } from "@/components/brand/mark";
 import { LiveField } from "@/components/public/live-field";
 import { Button } from "@/components/ui/button";
@@ -16,28 +40,28 @@ type AppShellProps = {
   children: React.ReactNode;
 };
 
-type NavItem = { href: string; label: string };
+type NavItem = { href: string; label: string; Icon: LucideIcon };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/office", label: "Command" },
-  { href: "/office/approvals", label: "Approvals" },
-  { href: "/office/floor", label: "Floor" },
-  { href: "/office/inbox", label: "Inbox" },
-  { href: "/office/customers", label: "Customers" },
-  { href: "/office/chat", label: "Chat" },
-  { href: "/office/service", label: "Service" },
-  { href: "/office/catalogue", label: "Catalogue" },
-  { href: "/office/marketing", label: "Marketing" },
-  { href: "/office/briefs", label: "Briefs" },
-  { href: "/office/sales", label: "Sales" },
-  { href: "/office/ledger", label: "Ledger" },
-  { href: "/office/technical", label: "Technical" },
-  { href: "/office/revenue", label: "Revenue" },
-  { href: "/office/delegations", label: "Delegation" },
-  { href: "/office/constitution", label: "Constitution" },
-  { href: "/office/governance", label: "Record" },
-  { href: "/office/audit", label: "Audit" },
-  { href: "/office/metrics", label: "Metrics" },
+  { href: "/office", label: "Command", Icon: LayoutDashboard },
+  { href: "/office/approvals", label: "Approvals", Icon: ClipboardCheck },
+  { href: "/office/floor", label: "Floor", Icon: Bot },
+  { href: "/office/inbox", label: "Inbox", Icon: Inbox },
+  { href: "/office/customers", label: "Customers", Icon: Users },
+  { href: "/office/chat", label: "Chat", Icon: MessageCircle },
+  { href: "/office/service", label: "Service", Icon: Headphones },
+  { href: "/office/catalogue", label: "Catalogue", Icon: Library },
+  { href: "/office/marketing", label: "Marketing", Icon: Megaphone },
+  { href: "/office/briefs", label: "Briefs", Icon: FileText },
+  { href: "/office/sales", label: "Sales", Icon: BriefcaseBusiness },
+  { href: "/office/ledger", label: "Ledger", Icon: FileCheck2 },
+  { href: "/office/technical", label: "Technical", Icon: Wrench },
+  { href: "/office/revenue", label: "Revenue", Icon: Repeat2 },
+  { href: "/office/delegations", label: "Delegation", Icon: SlidersHorizontal },
+  { href: "/office/constitution", label: "Constitution", Icon: Scale },
+  { href: "/office/governance", label: "Record", Icon: ClipboardCheck },
+  { href: "/office/audit", label: "Audit", Icon: ScrollText },
+  { href: "/office/metrics", label: "Metrics", Icon: BarChart3 },
 ];
 
 const GOVERNANCE_HREFS = new Set([
@@ -66,6 +90,8 @@ const GOVERNANCE_NAV_ITEMS = NAV_ITEMS.filter((item) => GOVERNANCE_HREFS.has(ite
 
 function NavLink({ href, label, onClick }: { href: string; label: string; onClick?: () => void }) {
   const location = useLocation();
+  const item = NAV_ITEMS.find((navItem) => navItem.href === href);
+  const Icon = item?.Icon;
 
   const active =
     href === "/office" ? location.pathname === "/office" : location.pathname.startsWith(href);
@@ -82,12 +108,20 @@ function NavLink({ href, label, onClick }: { href: string; label: string; onClic
           : "border-transparent text-muted hover:border-border/60 hover:bg-raised/40 hover:text-fg",
       )}
     >
-      <span>{label}</span>
+      <span className="relative z-10 flex min-w-0 items-center gap-2.5">
+        {Icon ? (
+          <Icon
+            aria-hidden="true"
+            className="size-4 shrink-0 opacity-75 transition-[opacity,transform] duration-200 group-hover:translate-x-0.5 group-hover:opacity-100"
+          />
+        ) : null}
+        <span>{label}</span>
+      </span>
 
-      <span
+        <span
         aria-hidden="true"
         className={cn(
-          "h-1.5 w-1.5 rounded-full transition-opacity duration-200",
+          "relative z-10 h-1.5 w-1.5 rounded-full transition-[opacity,transform] duration-200",
           active ? "bg-accent opacity-100" : "bg-muted opacity-0 group-hover:opacity-40",
         )}
       />
@@ -253,7 +287,10 @@ export function AppShell({ snapshot, children }: AppShellProps) {
               aria-busy={halting}
               onClick={toggleHalt}
             >
-              {halting ? "Working…" : halted ? "Resume office" : "Halt office"}
+              <span className="flex items-center gap-2">
+                {halted ? <Play aria-hidden="true" className="size-4" /> : <Pause aria-hidden="true" className="size-4" />}
+                {halting ? "Working…" : halted ? "Resume office" : "Halt office"}
+              </span>
             </Button>
 
             {haltError ? (
@@ -275,7 +312,10 @@ export function AppShell({ snapshot, children }: AppShellProps) {
                     size="sm"
                     aria-label="Open office navigation"
                   >
-                    Menu
+                    <span className="flex items-center gap-2">
+                      <Menu aria-hidden="true" className="size-4" />
+                      Menu
+                    </span>
                   </Button>
                 </SheetTrigger>
 

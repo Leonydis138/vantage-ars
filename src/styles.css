@@ -190,6 +190,12 @@ html:has(.site) body {
 }
 
 .live-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: none;
+  border-radius: 9999px;
+  background: var(--color-ok);
   animation: pulse-live 2.2s ease-in-out infinite;
 }
 
@@ -285,6 +291,23 @@ html:has(.site) body {
 .site .nav-link[data-status="active"]::after,
 .site .nav-link[aria-current="page"]::after {
   transform: scaleX(1);
+}
+
+@keyframes menu-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.site-more-menu[open] > .site-flow-popover,
+.site .site-mobile-routes:not([hidden]) {
+  transform-origin: top right;
+  animation: menu-reveal 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes mi-ring {
@@ -524,7 +547,8 @@ html:has(.site) body {
 }
 
 .office-shell .ambient-field {
-  display: none;
+  display: block;
+  opacity: 0.24;
 }
 
 .office-sidebar {
@@ -626,11 +650,6 @@ html:has(.site) body {
 
 .office-shell :is(input, textarea, select):focus {
   border-color: var(--color-accent);
-}
-
-.office-shell .live-dot,
-.site .live-dot {
-  animation: none;
 }
 
 .site .site-trustbar {

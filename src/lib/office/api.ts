@@ -1179,8 +1179,10 @@ export const getPublicStatus = createServerFn({ method: "GET" }).handler(async (
 
 /** Founder-only deployment projection; raw environment values never leave the server. */
 export const getDeploymentReadinessStatus = createServerFn({ method: "GET" })
-  .middleware([founderMiddleware])
-  .handler(async () => buildDeploymentReadiness(process.env));
+  .middleware([officeAccessMiddleware])
+  .handler(async ({ context }) =>
+    context.founder ? buildDeploymentReadiness(process.env) : null,
+  );
 
 type FounderMarketResearch = { title: string; url: string; snippet: string }[];
 
@@ -1226,8 +1228,10 @@ export const getFounderMarketResearch = createServerFn({ method: "GET" })
 
 /** Run founder diagnostics and only auto-nudge stale scheduler work through its existing guard. */
 export const getFounderOperationsReport = createServerFn({ method: "GET" })
-  .middleware([founderMiddleware])
-  .handler(async () => {
+  .middleware([officeAccessMiddleware])
+  .handler(async ({ context }) => {
+    if (!context.founder) return null;
+
     const { officeHealth } = await import("./health.server");
     let health = await officeHealth({ full: true });
     let recovery: { attempted: boolean; kicked: boolean; reason: string } = {

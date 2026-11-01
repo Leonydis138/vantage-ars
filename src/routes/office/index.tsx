@@ -101,6 +101,7 @@ function CommandCenter() {
         </ul>
       </Card>
 
+      {deploymentReadiness ? (
       <Card className="mb-6 p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -132,6 +133,7 @@ function CommandCenter() {
           ))}
         </ul>
       </Card>
+      ) : null}
 
       <div className="mb-6 flex flex-wrap gap-2">
         <SituationChip
