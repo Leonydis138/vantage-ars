@@ -18,9 +18,13 @@ import appCss from "../styles.css?url";
 import { validateEnv } from "@/lib/env";
 
 // Validate critical environment variables once when the server module loads.
-// Guarded so it never runs in the browser.
+// Guarded so it never runs in the browser. Autonomy-enabled deployments fail
+// fast on missing cron/auth configuration so the office never starts half-wired.
 if (typeof window === "undefined") {
-  validateEnv();
+  const report = validateEnv();
+  if (report.blocked.length > 0) {
+    throw new Error(`[vantage-ars] ${report.blocked.join(" ")}`);
+  }
 }
 
 const APP_NAME = "Vantage-ARS";

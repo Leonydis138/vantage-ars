@@ -32,6 +32,7 @@ import { Route as GuidesSlugRouteImport } from './routes/guides.$slug'
 import { Route as OfficeIndexRouteImport } from './routes/office/index'
 import { Route as OfficeApprovalsRouteImport } from './routes/office/approvals'
 import { Route as OfficeAuditRouteImport } from './routes/office/audit'
+import { Route as OfficeBriefsRouteImport } from './routes/office/briefs'
 import { Route as OfficeCatalogueRouteImport } from './routes/office/catalogue'
 import { Route as OfficeChatRouteImport } from './routes/office/chat'
 import { Route as OfficeConstitutionRouteImport } from './routes/office/constitution'
@@ -169,6 +170,11 @@ const OfficeApprovalsRoute = OfficeApprovalsRouteImport.update({
 const OfficeAuditRoute = OfficeAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
+  getParentRoute: () => OfficeRoute,
+} as any)
+const OfficeBriefsRoute = OfficeBriefsRouteImport.update({
+  id: '/briefs',
+  path: '/briefs',
   getParentRoute: () => OfficeRoute,
 } as any)
 const OfficeCatalogueRoute = OfficeCatalogueRouteImport.update({
@@ -310,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/guides/$slug': typeof GuidesSlugRoute
   '/office/approvals': typeof OfficeApprovalsRoute
   '/office/audit': typeof OfficeAuditRoute
+  '/office/briefs': typeof OfficeBriefsRoute
   '/office/catalogue': typeof OfficeCatalogueRoute
   '/office/chat': typeof OfficeChatRoute
   '/office/constitution': typeof OfficeConstitutionRoute
@@ -356,6 +363,7 @@ export interface FileRoutesByTo {
   '/guides/$slug': typeof GuidesSlugRoute
   '/office/approvals': typeof OfficeApprovalsRoute
   '/office/audit': typeof OfficeAuditRoute
+  '/office/briefs': typeof OfficeBriefsRoute
   '/office/catalogue': typeof OfficeCatalogueRoute
   '/office/chat': typeof OfficeChatRoute
   '/office/constitution': typeof OfficeConstitutionRoute
@@ -405,6 +413,7 @@ export interface FileRoutesById {
   '/guides/$slug': typeof GuidesSlugRoute
   '/office/approvals': typeof OfficeApprovalsRoute
   '/office/audit': typeof OfficeAuditRoute
+  '/office/briefs': typeof OfficeBriefsRoute
   '/office/catalogue': typeof OfficeCatalogueRoute
   '/office/chat': typeof OfficeChatRoute
   '/office/constitution': typeof OfficeConstitutionRoute
@@ -455,6 +464,7 @@ export interface FileRouteTypes {
     | '/guides/$slug'
     | '/office/approvals'
     | '/office/audit'
+    | '/office/briefs'
     | '/office/catalogue'
     | '/office/chat'
     | '/office/constitution'
@@ -501,6 +511,7 @@ export interface FileRouteTypes {
     | '/guides/$slug'
     | '/office/approvals'
     | '/office/audit'
+    | '/office/briefs'
     | '/office/catalogue'
     | '/office/chat'
     | '/office/constitution'
@@ -549,6 +560,7 @@ export interface FileRouteTypes {
     | '/guides/$slug'
     | '/office/approvals'
     | '/office/audit'
+    | '/office/briefs'
     | '/office/catalogue'
     | '/office/chat'
     | '/office/constitution'
@@ -766,6 +778,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OfficeAuditRouteImport
       parentRoute: typeof OfficeRoute
     }
+    '/office/briefs': {
+      id: '/office/briefs'
+      path: '/briefs'
+      fullPath: '/office/briefs'
+      preLoaderRoute: typeof OfficeBriefsRouteImport
+      parentRoute: typeof OfficeRoute
+    }
     '/office/catalogue': {
       id: '/office/catalogue'
       path: '/catalogue'
@@ -944,6 +963,7 @@ const GuidesRouteWithChildren =
 interface OfficeRouteChildren {
   OfficeApprovalsRoute: typeof OfficeApprovalsRoute
   OfficeAuditRoute: typeof OfficeAuditRoute
+  OfficeBriefsRoute: typeof OfficeBriefsRoute
   OfficeCatalogueRoute: typeof OfficeCatalogueRoute
   OfficeChatRoute: typeof OfficeChatRoute
   OfficeConstitutionRoute: typeof OfficeConstitutionRoute
@@ -965,6 +985,7 @@ interface OfficeRouteChildren {
 const OfficeRouteChildren: OfficeRouteChildren = {
   OfficeApprovalsRoute: OfficeApprovalsRoute,
   OfficeAuditRoute: OfficeAuditRoute,
+  OfficeBriefsRoute: OfficeBriefsRoute,
   OfficeCatalogueRoute: OfficeCatalogueRoute,
   OfficeChatRoute: OfficeChatRoute,
   OfficeConstitutionRoute: OfficeConstitutionRoute,

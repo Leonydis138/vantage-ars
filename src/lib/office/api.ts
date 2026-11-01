@@ -63,6 +63,7 @@ import {
 import { DELEGATABLE_ACTIONS, DELEGATION_PRESETS } from "./delegation";
 import { tick, runNow, schedulerStatus } from "./scheduler.server";
 import { publicStatus } from "./public-status";
+import { buildDeploymentReadiness } from "./deployment-readiness";
 import type { OfficeHealth } from "./health.server";
 import { listWork, workCounts } from "./work-queue.server";
 import { redriveAbandonedWork } from "./redrive.server";
@@ -1175,3 +1176,83 @@ export const getPublicStatus = createServerFn({ method: "GET" }).handler(async (
     rateCard: { ok: health.rateCard.ok },
   });
 });
+
+/** Founder-only deployment projection; raw environment values never leave the server. */
+export const getDeploymentReadinessStatus = createServerFn({ method: "GET" })
+  .middleware([founderMiddleware])
+  .handler(async () => buildDeploymentReadiness(process.env));
+
+type FounderMarketResearch = { title: string; url: string; snippet: string }[];
+
+let marketResearchCache: { expiresAt: number; results: FounderMarketResearch } | undefined;
+
+async function loadFounderMarketResearch(): Promise<FounderMarketResearch> {
+  if (marketResearchCache && marketResearchCache.expiresAt > Date.now()) {
+    return marketResearchCache.results;
+  }
+
+  try {
+    const { searchWeb } = await import("./web-search");
+    const results = await searchWeb(
+      "South Africa managed IT services cybersecurity backup IT support market trends",
+      5,
+    );
+    marketResearchCache = {
+      expiresAt: Date.now() + 30 * 60 * 1000,
+      results: results.flatMap((result) => {
+        try {
+          const url = new URL(result.url);
+          if (url.protocol !== "https:") return [];
+          return [{
+            title: result.title.slice(0, 200),
+            url: url.toString(),
+            snippet: result.snippet.slice(0, 800),
+          }];
+        } catch {
+          return [];
+        }
+      }),
+    };
+    return marketResearchCache.results;
+  } catch {
+    return [];
+  }
+}
+
+/** Founder-only market research, fetched server-side and cached to avoid repeated external requests. */
+export const getFounderMarketResearch = createServerFn({ method: "GET" })
+  .middleware([founderMiddleware])
+  .handler(loadFounderMarketResearch);
+
+/** Run founder diagnostics and only auto-nudge stale scheduler work through its existing guard. */
+export const getFounderOperationsReport = createServerFn({ method: "GET" })
+  .middleware([founderMiddleware])
+  .handler(async () => {
+    const { officeHealth } = await import("./health.server");
+    let health = await officeHealth({ full: true });
+    let recovery: { attempted: boolean; kicked: boolean; reason: string } = {
+      attempted: false,
+      kicked: false,
+      reason: "No safe automatic recovery was needed.",
+    };
+
+    if (
+      health.scheduler.autonomyEnabled &&
+      health.scheduler.overdue &&
+      health.database.ok &&
+      health.chain.ok &&
+      !health.halted
+    ) {
+      recovery = {
+        attempted: true,
+        ...(await nudgeScheduler({ data: { waitMs: 2_500 } }).catch(() => ({
+          kicked: false,
+          reason: "The guarded scheduler recovery could not be started.",
+        }))),
+      };
+      health = await officeHealth({ full: true });
+    }
+
+    const research = await loadFounderMarketResearch();
+    return { health, recovery, research };
+  });

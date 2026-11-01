@@ -28,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/office/service", label: "Service" },
   { href: "/office/catalogue", label: "Catalogue" },
   { href: "/office/marketing", label: "Marketing" },
+  { href: "/office/briefs", label: "Briefs" },
   { href: "/office/sales", label: "Sales" },
   { href: "/office/ledger", label: "Ledger" },
   { href: "/office/technical", label: "Technical" },

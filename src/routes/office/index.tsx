@@ -9,16 +9,20 @@ import { PageHeader } from "@/components/office/page-header";
 import { RunFloorButton } from "@/components/office/run-floor";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { getDeploymentReadinessStatus } from "@/lib/office/api";
+import { buildOperatingReadiness } from "@/lib/office/operating-readiness";
 import { formatDateTime, formatZar } from "@/lib/office/money";
 import { founderWork } from "@/lib/office/work";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/office/")({
+  loader: () => getDeploymentReadinessStatus(),
   component: CommandCenter,
 });
 
 function CommandCenter() {
   const snapshot = useOfficeSnapshot();
+  const deploymentReadiness = Route.useLoaderData();
   const [pulse, setPulse] = useState(0);
   const refresh = useCallback(() => setPulse((value) => value + 1), []);
   const pending = snapshot.approvals.filter((a) => a.status === "pending");
@@ -29,6 +33,7 @@ function CommandCenter() {
     .filter((o) => o.stage !== "lost")
     .reduce((sum, o) => sum + o.valueCents, 0);
   const work = founderWork(snapshot);
+  const readiness = buildOperatingReadiness(snapshot);
 
   return (
     <div className="enter-up mx-auto max-w-6xl">
@@ -63,6 +68,70 @@ function CommandCenter() {
           hint={`${Math.round(snapshot.health.autonomousResolution * 100)}% autonomous`}
         />
       </div>
+
+      <Card className="mb-6 p-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">Operating readiness</p>
+            <h2 className="mt-2 font-serif text-2xl">{readiness.score}/100</h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted">{readiness.summary}</p>
+          </div>
+          <div className="min-w-[180px] md:w-[220px]">
+            <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-muted">
+              <span>Risk</span>
+              <span>{readiness.riskLevel}</span>
+            </div>
+            <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-border">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all",
+                  readiness.score >= 80 ? "bg-ok" : readiness.score >= 60 ? "bg-warn" : "bg-danger",
+                )}
+                style={{ width: `${readiness.score}%` }}
+              />
+            </div>
+          </div>
+        </div>
+        <ul className="mt-4 grid gap-2 text-sm text-muted md:grid-cols-2 xl:grid-cols-4">
+          {readiness.focus.map((item) => (
+            <li key={item} className="rounded-lg border border-border bg-raised p-3">
+              {item}
+            </li>
+          ))}
+        </ul>
+      </Card>
+
+      <Card className="mb-6 p-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">Deployment readiness</p>
+            <h2 className="mt-2 font-serif text-2xl">{deploymentReadiness.score}/100</h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted">{deploymentReadiness.summary}</p>
+          </div>
+          <div className="min-w-[180px] md:w-[220px]">
+            <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-muted">
+              <span>Status</span>
+              <span>{deploymentReadiness.ready ? "Ready" : "Blocked"}</span>
+            </div>
+            <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-border">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all",
+                  deploymentReadiness.ready ? "bg-ok" : deploymentReadiness.score >= 60 ? "bg-warn" : "bg-danger",
+                )}
+                style={{ width: `${deploymentReadiness.score}%` }}
+              />
+            </div>
+          </div>
+        </div>
+        <ul className="mt-4 grid gap-2 text-sm text-muted md:grid-cols-2 xl:grid-cols-4">
+          {deploymentReadiness.focus.map((item) => (
+            <li key={item} className="rounded-lg border border-border bg-raised p-3">
+              {item}
+            </li>
+          ))}
+        </ul>
+      </Card>
 
       <div className="mb-6 flex flex-wrap gap-2">
         <SituationChip

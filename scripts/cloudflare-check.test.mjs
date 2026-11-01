@@ -40,6 +40,12 @@ describe("cloudflare provider resolution", () => {
     assert.equal(resolveProvider({}).provider, "none");
     assert.equal(resolveProvider({ CLOUDFLARE_ACCOUNT_ID: ACCOUNT }).provider, "none");
   });
+  it("honours the configured xAI model", () => {
+    assert.deepEqual(resolveProvider({ XAI_API_KEY: "x", XAI_MODEL: "grok-custom" }), {
+      provider: "xai",
+      model: "grok-custom",
+    });
+  });
 });
 
 describe("wrangler.jsonc secret guard", () => {

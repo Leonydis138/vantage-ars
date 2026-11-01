@@ -1740,7 +1740,7 @@ async function main() {
   check(
     "the customer CSV carries the account and its plan",
     customerAccountsToCsv(customerBook.accounts).includes(customer) &&
-      customerAccountsToCsv(customerBook.accounts).includes("Managed support plan"),
+      customerAccountsToCsv(customerBook.accounts).includes("Remote health and spend watch"),
     customerAccountsToCsv(customerBook.accounts).slice(0, 300),
   );
 

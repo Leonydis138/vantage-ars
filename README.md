@@ -196,6 +196,24 @@ SPF/DKIM records before switching the sender.
 3. Enter the founder email, a password of 12+ characters and the setup token.
 4. Remove `FOUNDER_SETUP_TOKEN` and redeploy. Sign-up is closed once a founder exists.
 
+## Final launch verification
+
+Before you brand the project live, run the final launch gate:
+
+```sh
+npm run final:check
+```
+
+This enforces the production deployment checks and then runs the repo-wide
+verification pass (`typecheck`, lint and the real office tests). It is the
+single final gate before pushing to production.
+
+## Next steps
+
+The execution roadmap for turning this into a live, revenue-generating operation is in
+[docs/next-steps.md](docs/next-steps.md). It covers launch, monitoring,
+research/AI expansion, marketing, recurring revenue, and the governance guardrails that keep the office safe.
+
 ## Deploy
 
 **[docs/deploy-vercel.md](docs/deploy-vercel.md) is the full walkthrough** — the
