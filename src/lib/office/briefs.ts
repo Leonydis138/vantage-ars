@@ -18,8 +18,27 @@ export type FounderBrief = {
   };
   actions: string[];
   risks: string[];
-  opportunities: string[];
+  opportunities: FounderImprovement[];
 };
+
+export type FounderImprovement = {
+  id: string;
+  priority: "high" | "normal";
+  title: string;
+  evidence: string;
+  action: string;
+  href: FounderOfficePath;
+  linkLabel: string;
+};
+
+type FounderOfficePath =
+  | "/office/audit"
+  | "/office/approvals"
+  | "/office/revenue"
+  | "/office/service"
+  | "/office/inbox"
+  | "/office/marketing"
+  | "/office/catalogue";
 
 export type MarketingBrief = {
   headline: string;
@@ -35,6 +54,131 @@ function formatCurrency(value: number): string {
     currency: "ZAR",
     maximumFractionDigits: 0,
   }).format(value / 100);
+}
+
+function buildFounderImprovements(snapshot: Partial<OfficeSnapshot> | any): FounderImprovement[] {
+  const improvements: FounderImprovement[] = [];
+  const approvals = Array.isArray(snapshot?.approvals) ? snapshot.approvals : [];
+  const inbound = Array.isArray(snapshot?.inbound) ? snapshot.inbound : [];
+  const tickets = Array.isArray(snapshot?.tickets) ? snapshot.tickets : [];
+  const campaigns = Array.isArray(snapshot?.campaigns) ? snapshot.campaigns : [];
+  const company = snapshot?.company ?? {};
+  const health = snapshot?.health ?? {};
+  const revenue = snapshot?.revenue ?? {};
+
+  const hardViolations = Number(health.hardViolations ?? 0);
+  const pendingApprovals = approvals.filter((item: any) => item?.status === "pending").length;
+  const openInbound = inbound.filter((item: any) => item?.status === "received").length;
+  const openTickets = tickets.filter((item: any) => item?.status !== "resolved").length;
+  const overdueCents = Number(revenue.overdueCents ?? 0);
+  const outstandingCents = Math.max(
+    Number(revenue.outstandingCents ?? 0),
+    Number(company.receivableCents ?? 0),
+  );
+  const churnRiskCount = Number(revenue.churnRiskCount ?? 0);
+
+  if (hardViolations > 0) {
+    improvements.push({
+      id: "governance-exceptions",
+      priority: "high",
+      title: "Resolve governance exceptions before widening authority",
+      evidence: `${hardViolations} hard governance exception${hardViolations === 1 ? " is" : "s are"} recorded.`,
+      action: "Review the audit and blocked decisions, record the corrective outcome, and keep delegation limits unchanged until resolved.",
+      href: "/office/audit",
+      linkLabel: "Review audit",
+    });
+  }
+  if (pendingApprovals > 0) {
+    improvements.push({
+      id: "approval-backlog",
+      priority: "high",
+      title: "Clear the founder decision queue",
+      evidence: `${pendingApprovals} approval${pendingApprovals === 1 ? " is" : "s are"} waiting for a founder decision.`,
+      action: "Review the evidence and decide each item in the approval queue before the office proceeds with gated work.",
+      href: "/office/approvals",
+      linkLabel: "Open approvals",
+    });
+  }
+  if (overdueCents > 0) {
+    improvements.push({
+      id: "overdue-invoices",
+      priority: "high",
+      title: "Review overdue invoices",
+      evidence: `${formatCurrency(overdueCents)} is marked overdue in the revenue book.`,
+      action: "Check invoice ageing and reconcile only exact, verified receipts; customer reminders still require the appropriate approval.",
+      href: "/office/revenue",
+      linkLabel: "Review revenue",
+    });
+  } else if (outstandingCents > 0) {
+    improvements.push({
+      id: "receivables-review",
+      priority: "normal",
+      title: "Review open receivables",
+      evidence: `${formatCurrency(outstandingCents)} remains in open receivables.`,
+      action: "Match incoming payment notices to issued invoices and confirm any remaining follow-up through the founder queue.",
+      href: "/office/revenue",
+      linkLabel: "Review revenue",
+    });
+  }
+  if (churnRiskCount > 0) {
+    improvements.push({
+      id: "subscription-risk",
+      priority: "high",
+      title: "Review subscriptions at risk",
+      evidence: `${churnRiskCount} active subscription${churnRiskCount === 1 ? " is" : "s are"} flagged for churn risk.`,
+      action: "Inspect the renewal and service records, then decide whether a founder-approved customer follow-up is appropriate.",
+      href: "/office/revenue",
+      linkLabel: "Review renewals",
+    });
+  }
+  if (openTickets > 0) {
+    improvements.push({
+      id: "service-backlog",
+      priority: "high",
+      title: "Reduce the open service backlog",
+      evidence: `${openTickets} service or technical item${openTickets === 1 ? " remains" : "s remain"} open.`,
+      action: "Confirm ownership and verified next steps for each open item, then update its service record.",
+      href: "/office/service",
+      linkLabel: "Open service desk",
+    });
+  }
+  if (openInbound > 0) {
+    improvements.push({
+      id: "inbound-routing",
+      priority: "normal",
+      title: "Route waiting inbound messages",
+      evidence: `${openInbound} inbound message${openInbound === 1 ? " is" : "s are"} still unprocessed.`,
+      action: "Confirm each message is classified and assigned to the correct desk before it enters sales or service work.",
+      href: "/office/inbox",
+      linkLabel: "Open inbox",
+    });
+  }
+  if (campaigns.length === 0) {
+    improvements.push({
+      id: "owned-channel-campaign",
+      priority: "normal",
+      title: "Test one owned-channel campaign",
+      evidence: "No campaign is recorded in the office campaign book.",
+      action: "Request an organic draft tied to a published service, then review it before publication or any sales handoff.",
+      href: "/office/marketing",
+      linkLabel: "Open marketing",
+    });
+  }
+  if (Number(revenue.activeSubscriptions ?? 0) === 0) {
+    improvements.push({
+      id: "recurring-offer",
+      priority: "normal",
+      title: "Review the recurring-service offer",
+      evidence: "The revenue book has no active subscriptions.",
+      action: "Compare current customer demand with published managed-service plans and approve changes to the offer before quoting them.",
+      href: "/office/catalogue",
+      linkLabel: "Review catalogue",
+    });
+  }
+
+  return improvements
+    .sort((left, right) => Number(right.priority === "high") - Number(left.priority === "high"))
+    .slice(0, 5);
 }
 
 export function buildFounderBrief(snapshot: Partial<OfficeSnapshot> | any): FounderBrief {
@@ -70,12 +214,6 @@ export function buildFounderBrief(snapshot: Partial<OfficeSnapshot> | any): Foun
       : "No active campaigns are in motion.",
   ];
 
-  const opportunitiesList = [
-    openInbound > 0 ? "Route the newest inbound work to the correct desk before it ages." : "Keep the inbound queue clean and use the next regular desk review.",
-    pipelineCents > 0 ? "Check the strongest opportunity and decide whether to move it forward or keep it in the pipeline." : "Look for one clear, service-led growth angle and keep the pipeline focused.",
-    monthlyRecurringCents > 0 ? "Review the recurring book for renewals, churn risk and billing drift." : "Build a repeatable offer and consistent pricing around the concrete service mix.",
-  ];
-
   return {
     title: "Daily brief",
     summary:
@@ -91,7 +229,7 @@ export function buildFounderBrief(snapshot: Partial<OfficeSnapshot> | any): Foun
     },
     actions,
     risks,
-    opportunities: opportunitiesList,
+    opportunities: buildFounderImprovements(snapshot),
   };
 }
 

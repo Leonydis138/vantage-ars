@@ -683,14 +683,7 @@ html:has(.site) body {
 }
 
 .site .home-hero-panel::before {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  background-image: radial-gradient(rgb(233 247 255 / 0.13) 0.8px, transparent 0.8px);
-  background-size: 17px 17px;
-  content: "";
-  mask-image: linear-gradient(100deg, black, transparent 63%);
-  pointer-events: none;
+  content: none;
 }
 
 .site .home-hero-panel > div:first-child {
@@ -722,10 +715,10 @@ html:has(.site) body {
   max-width: 10ch;
   color: var(--color-fg);
   font-family: "Space Grotesk", var(--font-sans);
-  font-size: clamp(3.2rem, 6vw, 5.9rem);
+  font-size: 4.5rem;
   font-weight: 700;
   line-height: 0.98;
-  letter-spacing: -0.075em;
+  letter-spacing: 0;
 }
 
 .site .home-title-highlight {
@@ -788,7 +781,15 @@ html:has(.site) body {
   inset: 0;
   height: 100%;
   min-height: 27rem;
-  object-position: 58% center;
+  object-position: center 48%;
+  filter: brightness(1.22) saturate(0.82) contrast(1.02);
+}
+
+.site .service-photo {
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: center 48%;
+  filter: brightness(1.18) saturate(0.86) contrast(1.02);
 }
 
 .site .home-hero-image-shade {
@@ -822,6 +823,10 @@ html:has(.site) body {
 }
 
 @media (max-width: 639px) {
+  .site .home-hero-title {
+    font-size: 3.25rem;
+  }
+
   .site header.sticky > div {
     gap: 0.5rem;
     padding-inline: 0.875rem;

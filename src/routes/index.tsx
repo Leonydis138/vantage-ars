@@ -3,8 +3,6 @@ import { useState, type FormEvent } from "react";
 import { PublicFrame } from "@/components/public/site-frame";
 import { FormConfirmation } from "@/components/public/form-confirmation";
 import { EnquiryForm } from "@/components/public/enquiry-form";
-import { SignalAtlas } from "@/components/public/signal-atlas";
-import { ServiceArt } from "@/components/public/service-art";
 import {
   CloudIcon,
   InfraIcon,
@@ -42,43 +40,6 @@ const DEPARTMENTS = SERVICE_LINES.flatMap((line, index) => {
   const page = SERVICE_PAGES.find((item) => item.title === line.title);
   return page ? [{ line, page, Icon: LINE_ICONS[index] ?? VoipIcon }] : [];
 });
-
-const VISUAL_SERVICES = SERVICE_PAGES.map((page) => ({
-  slug: page.slug,
-  title: page.title,
-  note: page.lead,
-}));
-
-const QUICK_PATHS = [
-  {
-    number: "01",
-    title: "Calls & phones",
-    detail: "VoIP, call quality or a handset that has gone quiet.",
-    slug: "voip",
-    Icon: VoipIcon,
-  },
-  {
-    number: "02",
-    title: "Wi-Fi & network",
-    detail: "Slow connections, dropouts or a network that needs setting up.",
-    slug: "networking",
-    Icon: NetworkIcon,
-  },
-  {
-    number: "03",
-    title: "Computers & systems",
-    detail: "Infrastructure, security, backups or business IT support.",
-    slug: "it-infrastructure",
-    Icon: InfraIcon,
-  },
-  {
-    number: "04",
-    title: "Repetitive admin",
-    detail: "Find a sensible, human-controlled place for AI automation.",
-    slug: "ai-automation",
-    Icon: SignalBars,
-  },
-] as const;
 
 const STEPS = [
   {
@@ -119,9 +80,9 @@ const FAQS = [
 export const Route = createFileRoute("/")({
   head: () => {
     const head = pageHead({
-      title: "VoIP, networking & IT infrastructure · Vantage-ARS",
+      title: "Cognitive operations for service-critical businesses · Vantage-ARS",
       description:
-        "Worldwide remote VoIP, networking and IT infrastructure support from Vantage-ARS, with clear ZAR pricing and a written quote before work starts.",
+        "Vantage-ARS combines signal intelligence, AI-assisted triage, written quotes, and founder-controlled execution for VoIP, networking and infrastructure operations.",
       path: "/",
       authorName: COMPANY.authorName,
     });
@@ -152,21 +113,21 @@ function HomePage() {
   return (
     <PublicFrame>
       <section className="home-hero border-b border-border py-10 sm:py-14">
-        <div className="home-hero-panel grid items-center gap-10 overflow-hidden rounded-[1.75rem] lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="home-hero-panel grid items-center gap-8 overflow-hidden rounded-xl lg:grid-cols-[1.08fr_0.92fr]">
           <div className="relative">
             <p className="home-hero-kicker font-mono text-xs tracking-[0.22em] uppercase">
               <span className="home-kicker-mark" aria-hidden="true" />
-              Support for the tech your business runs on
+              The operating system for service-critical businesses
             </p>
 
             <h1 className="home-hero-title mt-5 max-w-3xl text-5xl leading-[0.98] tracking-[-0.05em] sm:text-7xl">
-              Your tech's got a problem.
-              <span className="home-title-highlight">Start here.</span>
+              We turn technical noise
+              <span className="home-title-highlight">into a profitable operating loop.</span>
             </h1>
 
             <p className="home-hero-copy mt-6 max-w-xl text-lg leading-relaxed">
-              Remote support worldwide, on-site by arrangement. Know the scope, timing and total in
-              writing before any work starts.
+              Vantage-ARS brings together signal intelligence, AI-assisted triage, quote discipline,
+              and founder-controlled execution so the business keeps moving without losing control.
             </p>
 
             <div className="home-hero-actions mt-8 flex flex-wrap gap-3">
@@ -175,17 +136,31 @@ function HomePage() {
                 hash="enquiry"
                 className="home-primary-cta cta inline-flex h-12 items-center rounded-md px-5 text-sm font-semibold"
               >
-                Tell us what's up <span aria-hidden="true">↗</span>
+                Book a diagnostic <span aria-hidden="true">↗</span>
               </Link>
 
               <Link
-                to="/rates"
+                to="/model"
                 className="cta-ghost inline-flex h-11 items-center rounded-md px-5 text-sm font-semibold"
               >
-                See published rates
+                See the operating model
               </Link>
             </div>
-            <p className="home-hero-rates mt-5 text-sm">
+
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              {[
+                { label: "Signal loop", value: "Detect → price → repair → confirm" },
+                { label: "Coverage", value: "Remote worldwide" },
+                { label: "Control", value: "Founder-led governance" },
+              ].map((item) => (
+                <div key={item.label} className="rounded-xl border border-border/80 bg-surface/40 px-3 py-3">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-subtle">{item.label}</p>
+                  <p className="mt-2 text-sm font-medium text-fg">{item.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <p className="home-hero-rates mt-6 text-sm">
               Remote from R{rateAmount("remote-support")}/hr · On-site from R
               {rateAmount("onsite-support")}/hr · VAT only where quoted
             </p>
@@ -193,105 +168,63 @@ function HomePage() {
 
           <figure className="home-hero-figure relative overflow-hidden">
             <img
-              src="/images/network-operations.svg"
-              alt="Illustrated network operations system connecting voice, network equipment and server infrastructure"
+              src="/images/panel.jpg"
+              alt="Ethernet patch panel with network cables connected inside a server rack"
               className="home-hero-image aspect-[4/3] w-full object-cover"
+              width="1400"
+              height="933"
+              decoding="async"
               fetchPriority="high"
             />
-            <div className="home-hero-image-shade" aria-hidden="true" />
-            <SignalAtlas />
-            <div className="home-hero-index font-mono" aria-hidden="true">
-              <span>VA / FIELD NOTES</span>
-              <span>001—008</span>
-            </div>
-            <div className="home-hero-stamp" aria-hidden="true">
-              <span>ONE</span>
-              <span>clear</span>
-              <span>desk</span>
-            </div>
-            <figcaption className="home-hero-caption">
-              <span className="home-caption-dot" aria-hidden="true" />
-              Every connection has a path. We help trace it.
+            <div className="absolute inset-0 bg-gradient-to-t from-[#06131d]/85 via-[#06131d]/20 to-transparent" aria-hidden="true" />
+            <figcaption className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-2 p-5 text-left">
+              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-accent">Operational signal</span>
+              <span className="max-w-xs text-sm text-slate-100">
+                Every route, fault, and handoff is measured before we act.
+              </span>
             </figcaption>
           </figure>
         </div>
-        <div className="home-proofline" aria-label="How work is agreed">
-          <span>Remote worldwide</span>
-          <span>Written scope first</span>
-          <span>No work starts until you accept</span>
-        </div>
       </section>
 
-      <section className="home-need-finder" aria-labelledby="need-heading">
-        <div className="home-section-heading">
-          <div>
-            <p className="home-section-kicker">A good place to start</p>
-            <h2 id="need-heading">What needs a hand?</h2>
-          </div>
-          <Link to="/find" className="home-finder-link">
-            Not sure? Try the 3-question finder <span aria-hidden="true">↗</span>
-          </Link>
+      <section className="border-b border-border py-16" aria-label="Why this is different">
+        <div className="max-w-4xl">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">Why it is different</p>
+          <h2 className="mt-2 font-serif text-4xl sm:text-5xl">
+            Not support tickets. A decision engine for modern infrastructure.
+          </h2>
         </div>
 
-        <div className="home-quick-paths">
-          {QUICK_PATHS.map(({ number, title, detail, slug, Icon }) => (
-            <Link key={slug} to="/services/$slug" params={{ slug }} className="home-quick-path">
-              <span className="home-quick-path-top">
-                <span className="home-quick-number">{number}</span>
-                <Icon className="home-quick-icon" aria-hidden="true" />
-              </span>
-              <span className="home-quick-title">{title}</span>
-              <span className="home-quick-detail">{detail}</span>
-              <span className="home-quick-arrow" aria-hidden="true">
-                ↗
-              </span>
-            </Link>
+        <div className="mt-8 grid gap-5 lg:grid-cols-3">
+          {[
+            {
+              title: "Signal intelligence",
+              body: "We trace symptoms, isolate the likely fault, and build the story before the first intervention.",
+            },
+            {
+              title: "Commercial clarity",
+              body: "Every job starts with scope, total, and authority so work is accountable from the beginning.",
+            },
+            {
+              title: "Founder-controlled execution",
+              body: "Human judgment stays in charge of spend, customer commitments, and operational risk.",
+            },
+          ].map((item) => (
+            <article key={item.title} className="rounded-2xl border border-border bg-surface/40 p-5">
+              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-accent">01</p>
+              <h3 className="mt-3 text-xl font-semibold text-fg">{item.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{item.body}</p>
+            </article>
           ))}
         </div>
-      </section>
-
-      <section className="border-b border-border py-16" aria-label="The practice">
-        <div className="home-section-heading">
-          <div>
-            <p className="home-section-kicker">A clearer picture of the work</p>
-            <h2 className="text-4xl sm:text-5xl">One connected system.</h2>
-          </div>
-          <p className="max-w-md text-sm leading-relaxed text-muted">
-            From the first call to the systems behind it, see what each service line is built to
-            solve.
-          </p>
-        </div>
-        <ul className="practice-visuals mt-8">
-          {VISUAL_SERVICES.map((service) => (
-            <li key={service.slug}>
-              <Link
-                to="/services/$slug"
-                params={{ slug: service.slug }}
-                className="practice-visual-card group"
-                aria-label={`${service.title}: ${service.note}`}
-              >
-                <ServiceArt slug={service.slug} className="practice-visual-art" />
-                <span className="practice-visual-copy">
-                  <span className="practice-visual-title">{service.title}</span>
-                  <span className="practice-visual-arrow" aria-hidden="true">
-                    ↗
-                  </span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-6 text-sm text-muted">
-          <Link to="/model" className="text-accent underline-offset-4 hover:underline">
-            How the office runs
-          </Link>
-          , including what it does alone and what still waits.
-        </p>
       </section>
 
       <section id="services" className="border-b border-border py-16" aria-label="Departments">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <h2 className="text-4xl sm:text-5xl">Eight service lines, one desk</h2>
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">What we do</p>
+            <h2 className="mt-2 font-serif text-4xl sm:text-5xl">Practical IT support.</h2>
+          </div>
 
           <Link
             to="/services"
@@ -301,210 +234,123 @@ function HomePage() {
           </Link>
         </div>
 
-        <div className="mt-8 border-t border-border">
+        <ul className="mt-8 grid border-t border-border md:grid-cols-2 md:gap-x-8">
           {DEPARTMENTS.map(({ line, page, Icon }) => (
-            <Link
-              key={page.slug}
-              to="/services/$slug"
-              params={{ slug: page.slug }}
-              className="group grid gap-3 border-b border-border px-2 py-6 transition-colors hover:bg-raised/50 sm:grid-cols-[3rem_1fr_10rem_2rem] sm:items-center sm:gap-6 sm:px-4"
-            >
-              <span className="flex size-11 items-center justify-center rounded-xl border border-border bg-raised">
-                <Icon className="size-6 text-accent" aria-hidden="true" />
-              </span>
-
-              <span>
-                <span className="flex items-baseline gap-3">
-                  <span className="font-mono text-xs text-subtle">{page.number}</span>
-
-                  <span className="text-2xl group-hover:text-accent sm:text-3xl">{page.title}</span>
-                </span>
-
-                <span className="mt-2 block max-w-xl text-sm leading-relaxed text-muted">
-                  {page.description}
-                </span>
-              </span>
-
-              <span className="font-mono text-sm text-accent sm:text-right">{line.price}</span>
-
-              <span
-                aria-hidden
-                className="hidden text-subtle transition-transform group-hover:translate-x-1 group-hover:text-accent sm:block"
+            <li key={page.slug} className="border-b border-border">
+              <Link
+                to="/services/$slug"
+                params={{ slug: page.slug }}
+                className="group grid min-h-24 grid-cols-[2rem_1fr_auto] items-center gap-3 px-1 py-4 transition-colors hover:bg-raised/40 sm:gap-4 sm:px-3"
               >
-                &#8594;
-              </span>
-            </Link>
-          ))}
-        </div>
-
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface/50 p-5">
-          <p className="max-w-xl text-sm leading-relaxed text-muted">
-            Not sure which line fits? Answer three questions and the service finder will name the
-            closest published line, the guides that narrow it and what to put in the enquiry.
-          </p>
-          <Link
-            to="/find"
-            className="cta-ghost inline-flex h-10 items-center rounded-md px-4 text-sm font-medium"
-          >
-            Find your starting point
-          </Link>
-          <Link
-            to="/assess"
-            className="cta-ghost inline-flex h-10 items-center rounded-md px-4 text-sm font-medium"
-          >
-            Assess IT readiness
-          </Link>
-          <Link
-            to="/automation"
-            className="cta-ghost inline-flex h-10 items-center rounded-md px-4 text-sm font-medium"
-          >
-            Assess AI automation fit
-          </Link>
-        </div>
-      </section>
-
-      <section id="autonomy" className="border-t border-border py-12" aria-label="AI-native office">
-        <div className="panel flex flex-wrap items-center justify-between gap-6 rounded-2xl p-6 sm:p-8">
-          <div className="max-w-2xl">
-            <p className="font-mono text-xs tracking-[0.22em] text-accent uppercase">
-              AI-native office
-            </p>
-            <h2 className="mt-3 text-3xl sm:text-4xl">Automation with clear limits.</h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted">
-              Specialist agents handle routine records and follow-up. Spending, high-impact
-              decisions and customer commitments stay behind explicit controls.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/model"
-              className="cta-ghost inline-flex h-10 items-center rounded-md px-4 text-sm font-medium"
-            >
-              How the office works
-            </Link>
-            <Link
-              to="/automation"
-              className="cta inline-flex h-10 items-center rounded-md px-4 text-sm font-medium"
-            >
-              Assess an AI workflow
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-t border-border py-16" aria-label="How a job runs">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <h2 className="text-4xl sm:text-5xl">How a job runs</h2>
-
-          <p className="font-mono text-xs tracking-[0.18em] text-subtle uppercase">
-            Same path every time
-          </p>
-        </div>
-
-        <ol className="mt-8 grid gap-4 md:grid-cols-3">
-          {STEPS.map((step, index) => (
-            <li
-              key={step.n}
-              className={`panel rounded-2xl p-6 ${
-                index === 1 ? "enter-up d-1" : index === 2 ? "enter-up d-2" : "enter-up"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <p className="font-mono text-sm text-accent">{step.n}</p>
-
-                <QuoteIcon className="size-5 text-subtle" aria-hidden="true" />
-              </div>
-
-              <h3 className="mt-4 text-2xl">{step.title}</h3>
-
-              <p className="mt-2 text-sm leading-relaxed text-muted">{step.body}</p>
+                <Icon className="size-5 text-accent/80" aria-hidden="true" />
+                <span className="min-w-0">
+                  <span className="block text-base font-semibold text-fg group-hover:text-accent">
+                    {page.title}
+                  </span>
+                  <span className="mt-1 line-clamp-2 block text-sm leading-relaxed text-muted">
+                    {page.description}
+                  </span>
+                </span>
+                <span className="font-mono text-xs text-subtle">{line.price}</span>
+              </Link>
             </li>
           ))}
-        </ol>
+        </ul>
+
+        <p className="mt-5 text-sm text-muted">
+          Need help choosing?{" "}
+          <Link to="/find" className="text-accent underline-offset-4 hover:underline">
+            Use the service finder
+          </Link>
+          .
+        </p>
       </section>
 
-      <section id="prices" className="border-t border-border py-12" aria-label="Published prices">
-        <div className="panel flex flex-wrap items-center justify-between gap-6 rounded-2xl p-6 sm:p-8">
-          <div>
+      <section className="grid gap-10 border-b border-border py-12 lg:grid-cols-[1.3fr_0.7fr] lg:gap-16">
+        <div aria-label="How a job runs">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">Simple process</p>
+          <h2 className="mt-2 font-serif text-3xl sm:text-4xl">Know what happens next.</h2>
+          <ol className="mt-5 divide-y divide-border border-y border-border">
+          {STEPS.map((step, index) => (
+            <li key={step.n} className="grid grid-cols-[2rem_1fr] gap-3 py-4">
+              <span className="font-mono text-xs text-subtle">{step.n}</span>
+              <span>
+                <span className="block text-sm font-semibold text-fg">{step.title}</span>
+                <span className="mt-1 block text-sm leading-relaxed text-muted">{step.body}</span>
+              </span>
+            </li>
+          ))}
+          </ol>
+        </div>
+
+        <div id="prices" className="self-center" aria-label="Published prices">
             <p className="font-mono text-xs tracking-[0.18em] text-accent uppercase">
-              Clear pricing
+              Published pricing
             </p>
-            <h2 className="mt-2 text-3xl">
-              Remote support from R{rateAmount("remote-support")}/hr.
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-              Managed plans have fixed published prices. VAT is included only when the written quote
-              says so.
+            <h2 className="mt-2 font-serif text-3xl">Remote support</h2>
+            <p className="mt-2 text-xl text-fg">From R{rateAmount("remote-support")}/hr</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              Written scope and total before work begins. VAT only where quoted.
             </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
             <Link
               to="/rates"
-              className="cta inline-flex h-10 items-center rounded-md px-4 text-sm font-medium"
+              className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-accent hover:underline"
             >
-              View all rates
+              All rates <span aria-hidden="true">→</span>
             </Link>
             <Link
               to="/services/$slug"
               params={{ slug: "managed-support" }}
-              className="cta-ghost inline-flex h-10 items-center rounded-md px-4 text-sm font-medium"
+              className="mt-3 block text-sm text-muted underline-offset-4 hover:text-fg hover:underline"
             >
-              Managed services
+              Managed support plans
             </Link>
-          </div>
         </div>
       </section>
 
-      <section className="border-t border-border py-16" aria-label="Forms">
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div id="enquiry" className="scroll-mt-24" aria-label="Enquiry">
-            <p className="font-mono text-xs tracking-[0.2em] text-accent uppercase">01 · Enquiry</p>
-
-            <h2 className="mt-4 text-4xl sm:text-5xl">Ask for a quote</h2>
-
-            <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">
-              A few sentences are enough. This is not a contract — you get a written quote first.
-            </p>
-
-            <div className="mt-8">
-              <EnquiryForm
-                nameMaxLength={120}
-                messagePlaceholder="What stopped working, or what you want set up."
-                submitLabel="Request a quote"
-              />
-            </div>
-          </div>
-
-          <div id="payment" className="scroll-mt-24" aria-label="Payment">
-            <p className="font-mono text-xs tracking-[0.2em] text-accent uppercase">
-              02 · Payment notice
-            </p>
-
-            <h2 className="mt-4 text-4xl sm:text-5xl">Paid already? Tell us.</h2>
-
-            <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">
-              Send the reference from your quote or invoice. This records your notice — it is not an
-              automatic receipt.
-            </p>
-
-            <div className="mt-8">
-              <PaymentForm payment={payment} />
-            </div>
+      <section className="border-b border-border py-12" aria-label="Get a quote">
+        <div id="enquiry" className="scroll-mt-24 max-w-2xl">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">Start a conversation</p>
+          <h2 className="mt-2 font-serif text-4xl sm:text-5xl">Ask for a quote.</h2>
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">
+            Tell us what stopped working or what you want set up. You receive a written scope and total first.
+          </p>
+          <div className="mt-6">
+            <EnquiryForm
+              nameMaxLength={120}
+              messagePlaceholder="What stopped working, or what you want set up."
+              submitLabel="Request a quote"
+            />
           </div>
         </div>
+
+        <details id="payment" className="group mt-8 max-w-2xl scroll-mt-24 border-y border-border">
+          <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-sm font-semibold text-fg marker:hidden">
+            <span>Already paid? Send a payment notice.</span>
+            <span className="text-lg text-accent transition-transform group-open:rotate-45" aria-hidden="true">+</span>
+          </summary>
+          <p className="pb-4 text-sm leading-relaxed text-muted">
+            This records your notice; it is not an automatic receipt.
+          </p>
+          <div className="pb-5">
+            <PaymentForm payment={payment} />
+          </div>
+        </details>
       </section>
 
       <section className="border-t border-border py-16" aria-label="Common questions">
-        <h2 className="text-4xl sm:text-5xl">Common questions</h2>
-
-        <dl className="mt-8 max-w-3xl divide-y divide-border border-y border-border">
+        <h2 className="font-serif text-3xl sm:text-4xl">Common questions</h2>
+        <div className="mt-6 max-w-3xl divide-y divide-border border-y border-border">
           {FAQS.map((faq) => (
-            <div key={faq.q} className="py-6">
-              <dt className="font-serif text-2xl">{faq.q}</dt>
-              <dd className="mt-2 text-sm leading-relaxed text-muted">{faq.a}</dd>
-            </div>
+            <details key={faq.q} className="group py-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-fg">
+                {faq.q}
+                <span className="text-lg text-accent transition-transform group-open:rotate-45" aria-hidden="true">+</span>
+              </summary>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">{faq.a}</p>
+            </details>
           ))}
-        </dl>
+        </div>
       </section>
     </PublicFrame>
   );

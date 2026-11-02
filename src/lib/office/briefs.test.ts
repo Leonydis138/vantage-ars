@@ -37,6 +37,45 @@ describe("founder brief builders", () => {
     assert.ok(brief.summary.length > 0);
     assert.ok(brief.actions.length >= 2);
     assert.ok(brief.risks.length >= 1);
+    assert.ok(brief.opportunities.length > 0);
+  });
+
+  it("ranks founder improvements from live risk evidence", () => {
+    const brief = buildFounderBrief({
+      approvals: [{ status: "pending" }],
+      inbound: [{ status: "received" }],
+      tickets: [{ status: "open" }],
+      campaigns: [],
+      company: { receivableCents: 82500 },
+      health: { hardViolations: 1 },
+      revenue: { overdueCents: 42000, churnRiskCount: 1, activeSubscriptions: 0 },
+    } as any);
+
+    assert.equal(brief.opportunities[0]?.id, "governance-exceptions");
+    assert.equal(brief.opportunities[0]?.priority, "high");
+    assert.equal(brief.opportunities[0]?.href, "/office/audit");
+    assert.equal(
+      brief.opportunities.find((item) => item.id === "approval-backlog")?.href,
+      "/office/approvals",
+    );
+    assert.ok(brief.opportunities.some((item) => item.id === "overdue-invoices"));
+    assert.ok(brief.opportunities.some((item) => item.evidence.includes("420")));
+    assert.ok(brief.opportunities.length <= 5);
+  });
+
+  it("does not invent risk recommendations for an empty office", () => {
+    const brief = buildFounderBrief({
+      approvals: [],
+      inbound: [],
+      tickets: [],
+      campaigns: [],
+      company: { receivableCents: 0 },
+      health: { hardViolations: 0 },
+      revenue: { overdueCents: 0, churnRiskCount: 0, activeSubscriptions: 0, outstandingCents: 0 },
+    } as any);
+
+    assert.ok(brief.opportunities.every((item) => item.priority === "normal"));
+    assert.ok(brief.opportunities.every((item) => item.evidence.length > 0));
   });
 
   it("builds a marketing brief with clear angle and proof points", () => {

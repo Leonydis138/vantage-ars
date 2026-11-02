@@ -27,11 +27,11 @@ import { SERVICE_PAGES } from "@/lib/site/services";
 import { PUBLISHED_RATES } from "@/lib/office/catalogue";
 
 const nav = [
-  { to: "/services", hash: undefined, label: "Services", Icon: Network },
-  { to: "/find", hash: undefined, label: "Find help", Icon: Search },
-  { to: "/automation", hash: undefined, label: "AI automation", Icon: Workflow },
-  { to: "/rates", hash: undefined, label: "Rates", Icon: BadgeDollarSign },
-  { to: "/support", hash: undefined, label: "Service desk", Icon: Headphones },
+  { to: "/services", hash: undefined, label: "Signal map", Icon: Network },
+  { to: "/find", hash: undefined, label: "Issue finder", Icon: Search },
+  { to: "/automation", hash: undefined, label: "Operating loop", Icon: Workflow },
+  { to: "/rates", hash: undefined, label: "Pricing", Icon: BadgeDollarSign },
+  { to: "/support", hash: undefined, label: "Desk", Icon: Headphones },
 ] as const;
 
 const exploreSections = [
@@ -70,9 +70,9 @@ const exploreSections = [
 ] as const;
 
 const trustPills = [
-  { label: "Written quote first", Icon: QuoteIcon },
-  { label: "No uptime promise", Icon: NoTiesIcon },
-  { label: "Remote support worldwide", Icon: GlobeIcon },
+  { label: "Signal-first triage", Icon: QuoteIcon },
+  { label: "Founder-controlled", Icon: NoTiesIcon },
+  { label: "Remote operations worldwide", Icon: GlobeIcon },
 ] as const;
 
 /** The published amount for a rate, read from the catalogue and never typed out here. */
@@ -156,7 +156,7 @@ export function PublicFrame({ children }: { children: ReactNode }) {
             <span className="leading-none">
               <span className="block font-mono text-xs tracking-[0.22em] text-fg">VANTAGE-ARS</span>
               <span className="mt-0.5 hidden font-mono text-[9px] tracking-[0.28em] text-subtle sm:block">
-                NETWORK OPERATIONS DESK
+                COGNITIVE OPERATIONS SYSTEM
               </span>
             </span>
           </Link>

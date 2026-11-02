@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { ArrowRight } from "lucide-react";
 import { useOfficeSnapshot } from "@/components/office/office-snapshot-hook";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -146,14 +148,39 @@ function FounderBriefsPage() {
         </Card>
 
         <Card className="p-5">
-          <h2 className="font-serif text-2xl">Next opportunities</h2>
-          <ul className="mt-4 space-y-3 text-sm text-muted">
-            {brief.opportunities.map((item) => (
-              <li key={item} className="rounded-lg border border-border bg-raised p-3">
-                {item}
-              </li>
-            ))}
-          </ul>
+          <h2 className="font-serif text-2xl">Improvements to consider</h2>
+          {brief.opportunities.length > 0 ? (
+            <ol className="mt-4 space-y-3">
+              {brief.opportunities.map((item, index) => (
+                <li key={item.id} className="rounded-md border border-border bg-raised p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      <span className="mt-0.5 font-mono text-xs tabular-nums text-subtle">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <h3 className="text-sm font-semibold text-fg">{item.title}</h3>
+                    </div>
+                    <Badge variant={item.priority === "high" ? "warn" : "default"}>
+                      {item.priority === "high" ? "Priority" : "Growth"}
+                    </Badge>
+                  </div>
+                  <p className="mt-2 pl-7 text-xs leading-relaxed text-muted">{item.evidence}</p>
+                  <p className="mt-2 pl-7 text-sm leading-relaxed text-fg">{item.action}</p>
+                  <Link
+                    to={item.href}
+                    className="mt-3 ml-7 inline-flex items-center gap-1.5 text-xs font-semibold text-accent transition-colors hover:text-fg"
+                  >
+                    {item.linkLabel}
+                    <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="mt-4 text-sm text-muted">
+              No active improvement signals in the current office records.
+            </p>
+          )}
 
           <div className="mt-5 rounded-lg border border-border bg-raised p-3">
             <p className="text-xs uppercase tracking-[0.2em] text-muted">Founder action</p>
