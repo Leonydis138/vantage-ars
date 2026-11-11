@@ -46,18 +46,20 @@ export function resolveProvider(env) {
   const token = (env.CLOUDFLARE_API_TOKEN ?? "").trim();
   const xai = (env.XAI_API_KEY ?? "").trim();
   const hfModel = (env.HUGGINGFACE_MODEL ?? "").trim();
+  const hfToken = (env.HUGGINGFACE_API_KEY ?? "").trim() || (env.HF_TOKEN ?? "").trim();
   const wanted = (env.AI_PROVIDER ?? "").trim().toLowerCase();
 
   if (wanted === "xai" && xai) {
     return { provider: "xai", model: (env.XAI_MODEL ?? "").trim() || "grok-4.5" };
   }
-  if (wanted === "huggingface") {
-    return { provider: "huggingface", model: hfModel || "google/gemma-2-2b-it" };
+  if (wanted === "huggingface" && hfToken) {
+    return { provider: "huggingface", model: hfModel || "Qwen/Qwen2.5-7B-Instruct" };
   }
+  if (wanted === "huggingface") return { provider: "none", model: null };
   if (wanted !== "xai" && account && token && ACCOUNT_RE.test(account))
     return { provider: "workers-ai", model: (env.WORKERS_AI_MODEL ?? "").trim() || DEFAULT_MODEL };
   if (xai) return { provider: "xai", model: (env.XAI_MODEL ?? "").trim() || "grok-4.5" };
-  if (hfModel) return { provider: "huggingface", model: hfModel };
+  if (hfToken) return { provider: "huggingface", model: hfModel || "Qwen/Qwen2.5-7B-Instruct" };
   return { provider: "none", model: null };
 }
 

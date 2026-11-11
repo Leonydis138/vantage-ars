@@ -49,14 +49,29 @@ describe("model provider", () => {
     });
     assert.equal(t?.model, "@cf/x/y");
   });
-  it("supports Hugging Face free models when selected", () => {
+  it("uses Hugging Face's OpenAI-compatible router for the selected model", () => {
     const t = resolveModelTarget({
       AI_PROVIDER: "huggingface",
-      HUGGINGFACE_MODEL: "google/gemma-2-2b-it",
+      HUGGINGFACE_MODEL: "Qwen/Qwen2.5-7B-Instruct",
       HUGGINGFACE_API_KEY: "hf_demo",
     });
     assert.equal(t?.provider, "huggingface");
-    assert.equal(t?.url, "https://api-inference.huggingface.co/models/google/gemma-2-2b-it");
-    assert.equal(t?.model, "google/gemma-2-2b-it");
+    assert.equal(t?.url, "https://router.huggingface.co/v1/chat/completions");
+    assert.equal(t?.model, "Qwen/Qwen2.5-7B-Instruct");
+    assert.equal(t?.key, "hf_demo");
+  });
+  it("defaults to a chat model and accepts HF_TOKEN", () => {
+    const t = resolveModelTarget({ HF_TOKEN: "hf_demo" });
+    assert.equal(t?.provider, "huggingface");
+    assert.equal(t?.model, "Qwen/Qwen2.5-7B-Instruct");
+    assert.equal(t?.key, "hf_demo");
+  });
+  it("does not silently fall back when Hugging Face is explicitly selected without a token", () => {
+    const t = resolveModelTarget({
+      AI_PROVIDER: "huggingface",
+      CLOUDFLARE_ACCOUNT_ID: ACCOUNT,
+      CLOUDFLARE_API_TOKEN: "cf-token",
+    });
+    assert.equal(t, null);
   });
 });

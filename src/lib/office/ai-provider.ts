@@ -11,7 +11,7 @@ export type ModelTarget = {
  * The office prefers a configured provider in this order:
  * 1) Cloudflare Workers AI when both host credentials are present
  * 2) xAI when API key + model are configured
- * 3) Hugging Face free/public inference when the host selects it
+ * 3) Hugging Face Inference Providers when the host selects it (limited free-tier credits may apply)
  *
  * The founder controls the actual business actions; these choices only widen the
  * assistant's research and drafting capacity without allowing unattended sales.
@@ -33,15 +33,19 @@ export function resolveModelTarget(env: Record<string, string | undefined>): Mod
     };
   }
 
-  if (wanted === "huggingface") {
-    const model = hfModel || "google/gemma-2-2b-it";
+  if (wanted === "huggingface" && hfToken) {
+    const model = hfModel || "Qwen/Qwen2.5-7B-Instruct";
     return {
       provider: "huggingface",
-      url: `https://api-inference.huggingface.co/models/${model}`,
-      key: hfToken || "",
+      url: "https://router.huggingface.co/v1/chat/completions",
+      key: hfToken,
       model,
     };
   }
+
+  // An explicit choice is a hard preference, not permission to silently use a
+  // different provider (which may have different billing and data terms).
+  if (wanted === "huggingface") return null;
 
   if (wanted !== "xai" && account && token && /^[a-f0-9]{32}$/i.test(account)) {
     return {
@@ -61,12 +65,12 @@ export function resolveModelTarget(env: Record<string, string | undefined>): Mod
     };
   }
 
-  if (hfModel || hfToken) {
-    const model = hfModel || "google/gemma-2-2b-it";
+  if (hfToken) {
+    const model = hfModel || "Qwen/Qwen2.5-7B-Instruct";
     return {
       provider: "huggingface",
-      url: `https://api-inference.huggingface.co/models/${model}`,
-      key: hfToken || "",
+      url: "https://router.huggingface.co/v1/chat/completions",
+      key: hfToken,
       model,
     };
   }

@@ -31,7 +31,9 @@ This is the execution list for taking the project from a verified, founder-gover
 1. Configure a primary AI provider.
    - Cloudflare Workers AI
    - xAI
-   - Hugging Face free/public model via AI_PROVIDER=huggingface
+   - Hugging Face Inference Providers router via `AI_PROVIDER=huggingface` and
+     `HUGGINGFACE_API_KEY` or `HF_TOKEN`; free-tier credits and availability are
+     limited, not guaranteed unlimited
 2. Add a research task type for web lookups and competitor scanning.
 3. Add a marketing brief generator with founder approval gate.
 4. Add a proposal draft engine for service packages.

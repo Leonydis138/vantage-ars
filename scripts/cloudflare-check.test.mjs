@@ -46,6 +46,26 @@ describe("cloudflare provider resolution", () => {
       model: "grok-custom",
     });
   });
+  it("requires a Hugging Face token and uses the same default model as the app", () => {
+    assert.equal(
+      resolveProvider({ HUGGINGFACE_MODEL: "Qwen/Qwen2.5-7B-Instruct" }).provider,
+      "none",
+    );
+    assert.deepEqual(resolveProvider({ HF_TOKEN: "hf_demo" }), {
+      provider: "huggingface",
+      model: "Qwen/Qwen2.5-7B-Instruct",
+    });
+  });
+  it("does not switch providers when Hugging Face is explicitly selected without a token", () => {
+    assert.deepEqual(
+      resolveProvider({
+        AI_PROVIDER: "huggingface",
+        CLOUDFLARE_ACCOUNT_ID: ACCOUNT,
+        CLOUDFLARE_API_TOKEN: "cf-token",
+      }),
+      { provider: "none", model: null },
+    );
+  });
 });
 
 describe("wrangler.jsonc secret guard", () => {

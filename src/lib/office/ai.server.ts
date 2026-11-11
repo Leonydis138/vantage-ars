@@ -615,9 +615,11 @@ export async function aiSpendSummary(): Promise<{
 async function callModel(target: ModelTarget, payload: string): Promise<Response | null> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
+      const headers = new Headers({ "Content-Type": "application/json" });
+      if (target.key) headers.set("Authorization", `Bearer ${target.key}`);
       const res = await fetch(target.url, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${target.key}` },
+        headers,
         body: payload,
         signal: AbortSignal.timeout(25_000),
       });

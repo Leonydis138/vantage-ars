@@ -34,20 +34,23 @@ wording — each claim names the check that proved it.
    delegation. With none, every cost, customer win/loss and handoff stops at
    the founder gate. That is by design.
 
-### 2. Model-driven reasoning for the agents (needs one valid Cloudflare token)
+### 2. Model-driven reasoning for the agents (optional provider credentials)
 
-The app's provider layer (`src/lib/office/ai-provider.ts`) already speaks
-Cloudflare Workers AI. What is missing is a token Cloudflare accepts.
+The app supports Cloudflare Workers AI, xAI, and the Hugging Face Inference
+Providers OpenAI-compatible router. Configure `AI_PROVIDER=huggingface` with
+`HUGGINGFACE_API_KEY` or `HF_TOKEN` to select Hugging Face explicitly; the
+current default model is `Qwen/Qwen2.5-7B-Instruct`. Hugging Face free-tier
+credits and availability are limited, not guaranteed unlimited. An explicitly
+selected but unavailable provider does not silently fall back to another
+provider. `npm run cf:check` reports which configured provider the app will use.
 
-- Tried on 2026-10-24, twice: `GET /user/tokens/verify` and
+- Historical Cloudflare check on 2026-10-24: `GET /user/tokens/verify` and
   `GET /accounts/<account_id>/tokens/verify` both returned
   `{"success":false,"errors":[{"code":1000,"message":"Invalid API Token"}]}`.
-  The values tried are paste-prefixed strings, not dashboard-issued API tokens (a dashboard token carries no such prefix).
-- TODO(founder): create a token at My Profile → API Tokens (no prefix) with
-  Workers AI permissions, then set `CLOUDFLARE_ACCOUNT_ID` +
-  `CLOUDFLARE_API_TOKEN` on the host and run `npm run cf:check`. Every
-  autonomous duty already runs without it — the agents decide from office
-  records; the model only sharpens drafted text.
+  That result applies to the values tested then; a valid Cloudflare token remains
+  an option, but is no longer the only way to enable model-driven reasoning.
+- Every autonomous duty runs without a language model — agents decide from
+  office records; the model only expands research and drafting capacity.
 
 ### 3. Worker deploy (same token)
 
