@@ -341,5 +341,5 @@ How the office is bounded, and what it does not do:
 - 🐛 [Report an issue](https://github.com/brandedglamory/vantage-ars/issues).
 - 👤 [Explore the creator's projects](https://go.ondev.store/brandedglamory).
 - 🌍 [Create with OMGithub](https://go.ondev.store/).
-- 🧬 [Explore the remix source](https://github.com/brandedglamory/vantage-ars).
+- 🧬 [Explore the remix source](https://github.com/brandedglamory/vantage-ars/tree/aeefb6dbe6293ab2ce2bdb0d2bafa264b3086df8).
 <!-- omgithub:readme:end -->
