@@ -327,21 +327,19 @@ How the office is bounded, and what it does not do:
 **[docs/governance-architecture.md](docs/governance-architecture.md)**.
 
 <!-- omgithub:readme:start -->
-
 ## 🚀 Build, play, and remix with OMGithub
 
-**Remixed using [OMGithub.com](https://omgithub.com).**
+**Remixed using [OMGithub.com](https://go.ondev.store/).**
 
-[![OMGithub](https://img.shields.io/badge/OMGithub-Open%20project-orange?style=for-the-badge)](https://omgithub.com/Leonydis138/vantage-ars)
-[![GitHub](https://img.shields.io/badge/GitHub-Source-181717?logo=github&style=for-the-badge)](https://github.com/Leonydis138/vantage-ars)
+[![OMGithub](https://img.shields.io/badge/OMGithub-Open%20project-orange?style=for-the-badge)](https://go.ondev.store/brandedglamory/vantage-ars)
+[![GitHub](https://img.shields.io/badge/GitHub-Source-181717?logo=github&style=for-the-badge)](https://github.com/brandedglamory/vantage-ars)
 
-- 🎮 [Open the project](https://omgithub.com/Leonydis138/vantage-ars).
-- ✨ [Remix this project](https://omgithub.com/?remix=Leonydis138%2Fvantage-ars).
-- 💻 [Explore the source](https://github.com/Leonydis138/vantage-ars).
-- 🛠️ [Check build runs](https://github.com/Leonydis138/vantage-ars/actions).
-- 🐛 [Report an issue](https://github.com/Leonydis138/vantage-ars/issues).
-- 👤 [Explore the creator's projects](https://omgithub.com/Leonydis138).
-- 🌍 [Create with OMGithub](https://omgithub.com).
-- 🧬 [Explore the remix source](https://github.com/Leonydis138/vantage-ars).
-
+- 🎮 [Open the project](https://go.ondev.store/brandedglamory/vantage-ars).
+- ✨ [Remix this project](https://go.ondev.store/brandedglamory/vantage-ars?remix=1).
+- 💻 [Explore the source](https://github.com/brandedglamory/vantage-ars).
+- 🛠️ [Check build runs](https://github.com/brandedglamory/vantage-ars/actions).
+- 🐛 [Report an issue](https://github.com/brandedglamory/vantage-ars/issues).
+- 👤 [Explore the creator's projects](https://go.ondev.store/brandedglamory).
+- 🌍 [Create with OMGithub](https://go.ondev.store/).
+- 🧬 [Explore the remix source](https://github.com/brandedglamory/vantage-ars).
 <!-- omgithub:readme:end -->
