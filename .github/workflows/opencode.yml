@@ -29,9 +29,32 @@ jobs:
     with:
       runtime_ref: 6f6d1b7b9bdb480e4ef1c32fd5b0fca8814a9003
 
-  opencode:
+  sanitize-labels:
     needs: prepare
     if: needs.prepare.outputs.approved == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      labels_json: ${{ steps.clean.outputs.labels_json }}
+    steps:
+      - name: Strip unstable networking labels before dispatch
+        id: clean
+        shell: bash
+        env:
+          RAW_LABELS_JSON: ${{ needs.prepare.outputs.labels_json }}
+        run: |
+          set -euo pipefail
+          sanitized="$(node --input-type=module <<'NODE'
+          const labels = JSON.parse(process.env.RAW_LABELS_JSON || '[]');
+          const blocked = new Set(['warp', 'proxy']);
+          const cleaned = labels.filter((label) => !blocked.has(String(label).trim().toLowerCase()));
+          process.stdout.write(JSON.stringify(cleaned));
+          NODE
+          )"
+          printf 'labels_json=%s\n' "$sanitized" >> "$GITHUB_OUTPUT"
+
+  opencode:
+    needs: [prepare, sanitize-labels]
+    if: needs.prepare.outputs.approved == 'true' && needs.sanitize-labels.result == 'success'
     permissions:
       contents: write
       id-token: write
@@ -44,7 +67,7 @@ jobs:
       issue_number: ${{ needs.prepare.outputs.issue_number }}
       request: ${{ needs.prepare.outputs.request }}
       issue_title: ${{ needs.prepare.outputs.issue_title }}
-      labels_json: ${{ needs.prepare.outputs.labels_json }}
+      labels_json: ${{ needs.sanitize-labels.outputs.labels_json }}
       sender: ${{ needs.prepare.outputs.sender }}
       target_ref: ${{ needs.prepare.outputs.target_ref }}
       target_sha: ${{ needs.prepare.outputs.target_sha }}
