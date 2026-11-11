@@ -14,6 +14,7 @@ import { Route as AssessRouteImport } from './routes/assess'
 import { Route as AutomationRouteImport } from './routes/automation'
 import { Route as FindRouteImport } from './routes/find'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as GameRouteImport } from './routes/game'
 import { Route as GuidesRouteImport } from './routes/guides'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ModelRouteImport } from './routes/model'
@@ -80,6 +81,11 @@ const FindRoute = FindRouteImport.update({
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GameRoute = GameRouteImport.update({
+  id: '/game',
+  path: '/game',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GuidesRoute = GuidesRouteImport.update({
@@ -299,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/automation': typeof AutomationRoute
   '/find': typeof FindRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/game': typeof GameRoute
   '/guides': typeof GuidesRouteWithChildren
   '/login': typeof LoginRoute
   '/model': typeof ModelRoute
@@ -348,6 +355,7 @@ export interface FileRoutesByTo {
   '/automation': typeof AutomationRoute
   '/find': typeof FindRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/game': typeof GameRoute
   '/guides': typeof GuidesRouteWithChildren
   '/login': typeof LoginRoute
   '/model': typeof ModelRoute
@@ -396,6 +404,7 @@ export interface FileRoutesById {
   '/automation': typeof AutomationRoute
   '/find': typeof FindRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/game': typeof GameRoute
   '/guides': typeof GuidesRouteWithChildren
   '/login': typeof LoginRoute
   '/model': typeof ModelRoute
@@ -447,6 +456,7 @@ export interface FileRouteTypes {
     | '/automation'
     | '/find'
     | '/forgot-password'
+    | '/game'
     | '/guides'
     | '/login'
     | '/model'
@@ -496,6 +506,7 @@ export interface FileRouteTypes {
     | '/automation'
     | '/find'
     | '/forgot-password'
+    | '/game'
     | '/guides'
     | '/login'
     | '/model'
@@ -543,6 +554,7 @@ export interface FileRouteTypes {
     | '/automation'
     | '/find'
     | '/forgot-password'
+    | '/game'
     | '/guides'
     | '/login'
     | '/model'
@@ -593,6 +605,7 @@ export interface RootRouteChildren {
   AutomationRoute: typeof AutomationRoute
   FindRoute: typeof FindRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  GameRoute: typeof GameRoute
   GuidesRoute: typeof GuidesRouteWithChildren
   LoginRoute: typeof LoginRoute
   ModelRoute: typeof ModelRoute
@@ -650,6 +663,13 @@ declare module '@tanstack/react-router' {
       path: '/forgot-password'
       fullPath: '/forgot-password'
       preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/game': {
+      id: '/game'
+      path: '/game'
+      fullPath: '/game'
+      preLoaderRoute: typeof GameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/guides': {
@@ -1027,6 +1047,7 @@ const rootRouteChildren: RootRouteChildren = {
   AutomationRoute: AutomationRoute,
   FindRoute: FindRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  GameRoute: GameRoute,
   GuidesRoute: GuidesRouteWithChildren,
   LoginRoute: LoginRoute,
   ModelRoute: ModelRoute,

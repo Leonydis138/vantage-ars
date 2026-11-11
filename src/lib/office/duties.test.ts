@@ -50,6 +50,15 @@ function view(overrides: Partial<DutyView> = {}): DutyView {
     payableCents: 0,
     publishedPathCount: 9,
     chainIntact: true,
+    autonomyReadiness: {
+      level: "autonomous",
+      score: 100,
+      headline: "Fully autonomous inside the constitution",
+      summary: "No gaps.",
+      gaps: [],
+      nextActions: [],
+    },
+    backupConfigured: false,
     work: [],
     ...overrides,
   };
@@ -1873,5 +1882,150 @@ describe("draft campaign duty", () => {
       }),
     );
     assert.deepEqual(work, []);
+  });
+});
+
+describe("the office audits its own autonomy", () => {
+  const gap = {
+    code: "no-delegation",
+    severity: "critical" as const,
+    title: "Nothing is delegated",
+    detail: "Customer work stops at the founder gate.",
+    action: "Save a delegation.",
+  };
+
+  it("files one honest readiness report a day when a critical gap exists", () => {
+    const work = planDuty(
+      "vantage_autonomy_audit",
+      view({
+        leads: [
+          {
+            id: "ld1",
+            companyName: "Acme",
+            stage: "engaged",
+            score: 40,
+            summary: "x",
+            inboundId: null,
+            updatedAt: hoursAgo(1),
+          },
+        ],
+        autonomyReadiness: {
+          level: "gated",
+          score: 60,
+          headline: "Gated",
+          summary: "No delegation.",
+          gaps: [gap],
+          nextActions: ["Save a delegation."],
+        },
+      }),
+    );
+    assert.equal(work.length, 1);
+    assert.equal(work[0]?.kind, "report_autonomy_gaps");
+    assert.equal(work[0]?.agentId, "vantage");
+    assert.equal(work[0]?.payload?.level, "gated");
+    assert.match(work[0]?.dedupeKey ?? "", /^autonomy-gaps:2026-03-14:/);
+    assert.equal(
+      JSON.stringify(work[0]).includes("secret"),
+      false,
+      "a readiness report never carries a credential",
+    );
+  });
+
+  it("does not nag an empty office", () => {
+    assert.deepEqual(
+      planDuty(
+        "vantage_autonomy_audit",
+        view({
+          autonomyReadiness: {
+            level: "gated",
+            score: 60,
+            headline: "Gated",
+            summary: "No delegation.",
+            gaps: [gap],
+            nextActions: ["Save a delegation."],
+          },
+        }),
+      ),
+      [],
+    );
+  });
+
+  it("says nothing when every gap is closed", () => {
+    assert.deepEqual(
+      planDuty(
+        "vantage_autonomy_audit",
+        view({
+          leads: [
+            {
+              id: "ld1",
+              companyName: "Acme",
+              stage: "engaged",
+              score: 40,
+              summary: "x",
+              inboundId: null,
+              updatedAt: hoursAgo(1),
+            },
+          ],
+        }),
+      ),
+      [],
+    );
+  });
+});
+
+describe("offline backups and customer health", () => {
+  it("backs up once a day, and only when a target is configured", () => {
+    assert.deepEqual(planDuty("keep_backup", view()), []);
+    const work = planDuty("keep_backup", view({ backupConfigured: true }));
+    assert.equal(work.length, 1);
+    assert.equal(work[0]?.kind, "write_backup");
+    assert.equal(work[0]?.payload?.date, "2026-03-14");
+  });
+
+  it("flags an invoice that has sat open for a week", () => {
+    const work = planDuty(
+      "keep_customer_health",
+      view({
+        ledger: [
+          {
+            id: "lg1",
+            kind: "invoice",
+            counterparty: "Harbour Point Dental",
+            amountCents: 120000,
+            status: "open",
+            relatedId: null,
+            createdAt: daysAgo(9),
+          },
+        ],
+      }),
+    );
+    assert.equal(work.length, 1);
+    assert.equal(work[0]?.kind, "review_customer_health");
+    const accounts = work[0]?.payload?.accounts as { companyName: string; reasons: string[] }[];
+    assert.equal(accounts[0]?.companyName, "Harbour Point Dental");
+    assert.match(accounts[0]?.reasons.join(" "), /invoice open for 9 days/);
+    assert.match(work[0]?.dedupeKey ?? "", /^customer-health:/);
+  });
+
+  it("does not flag an invoice that is still young", () => {
+    assert.deepEqual(
+      planDuty(
+        "keep_customer_health",
+        view({
+          ledger: [
+            {
+              id: "lg1",
+              kind: "invoice",
+              counterparty: "Harbour Point Dental",
+              amountCents: 120000,
+              status: "open",
+              relatedId: null,
+              createdAt: daysAgo(2),
+            },
+          ],
+        }),
+      ),
+      [],
+    );
   });
 });

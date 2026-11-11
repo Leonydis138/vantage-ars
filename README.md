@@ -26,21 +26,47 @@ Author: Juan-louw Greyling <juanlouw.greyling@gmail.com>
 
 ## The office runs itself
 
-With `AUTONOMY=on` and a `CRON_SECRET`, ten agents work a durable queue every
-ten minutes. Each has named duties on their own cadence: reception classifies
+With `AUTONOMY=on`, ten agents work a durable queue on their own cadence — and
+on a long-lived server the app now carries its own five-minute heartbeat, so it
+does not depend on GitHub cron, a Docker sidecar or a monitor to start a tick.
+Each agent has named duties on their own cadence: reception classifies
 enquiries, marketing scores leads on what the buyer actually wrote, flags repeat
 site interest as prospects, and drafts weekly owned-channel campaigns, then files
 a founder-gated handoff when demand is real; sales drafts real follow-ups on real
 quotes, the service desk drafts acknowledgements, technical writes procedures,
 finance chases overdue invoices, bills the subscriptions that are due and duns
-the ones that are not, admin checks the filing and reviews the recurring-revenue
-book, the orchestrator briefs you once a day from the books, and compliance halts
-the office if the audit chain ever fails to verify. It also reminds the founder
-weekly when an approval has waited a week; it never approves one on a timer.
+the ones that are not, admin checks the filing, reviews the recurring-revenue
+book, writes a verified offline backup and reviews customer health, the
+orchestrator briefs you once a day from the books, audits the office's own
+autonomy and halts the office if the audit chain ever fails to verify. It also
+reminds the founder weekly when an approval has waited a week; it never approves
+one on a timer.
 
 None of them email a customer, spend money, win or lose a customer, or publish
 anything. Those are founder approvals, with the constitutional trace attached —
 unless you have granted a standing delegation.
+
+### How autonomous is it? The office says so itself.
+
+`/office` now opens the autonomy panel with an honest readiness document: a
+score, a level (`autonomous`, `assisted`, `gated` or `blocked`), and every gap
+between "the duties run" and "the office can act without you". Each gap names the
+one next step that closes it. A missing delegation, a stale scheduler, a broken
+chain, an unconnected mailbox, a missing reasoning provider, an absent backup
+target, dead work and waiting approvals are all stated in plain words — never a
+green light the office has not earned.
+
+The same facts ride in `/api/health` (founder scope only) and are audited by the
+office once a day. Critical gaps are reported daily; optional warnings weekly, so
+a missing nice-to-have never becomes a daily nag. The audit can report; it can
+never grant itself a delegation or a credential.
+
+On a long-lived server, `SELF_SCHEDULER=on` (the default) gives the process its
+own timer. A Postgres lease means only one replica ticks; a dead replica's lease
+expires after fifteen minutes and a survivor takes over. Serverless runtimes are
+detected and never pretend to have a timer. When `BACKUP_DIR` is set, admin also
+writes one checksummed offline backup a day and prunes only its own files after
+the retention window.
 
 Full detail, including every duty and every brake: **[docs/autonomy.md](docs/autonomy.md)**.
 
@@ -176,6 +202,9 @@ Everything is in [`.env.example`](.env.example). The ones that matter:
 | `FOUNDER_SETUP_TOKEN`                                               | One-time code for creating the founder account. Remove it afterwards.                |
 | `FOUNDER_EMAIL`                                                     | The only account allowed into the office.                                            |
 | `AUTONOMY`                                                          | `on` lets the office act unattended. Anything else and only the button works.        |
+| `SELF_SCHEDULER`                                                    | `on` (default on a long-lived server) lets the app tick itself; `off` keeps your external heartbeat. Serverless is always off. |
+| `BACKUP_DIR`                                                        | Secure persistent directory for the daily verified offline backup. Unset disables it. |
+| `BACKUP_RETENTION_DAYS`                                             | How long the office keeps its own backup files. Default 14.                          |
 | `CRON_SECRET`                                                       | Bearer token the scheduler must present. 16+ characters.                             |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Optional outbound mail over implicit TLS (port 465); use a provider-verified sender. |
 | `GMAIL_SMTP_USER`, `GMAIL_SMTP_APP_PASSWORD`                        | Legacy Gmail fallback; messages use the Gmail account as sender.                     |

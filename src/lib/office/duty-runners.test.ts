@@ -508,6 +508,23 @@ function busyView(): DutyView {
     payableCents: 25000,
     publishedPathCount: 8,
     chainIntact: false,
+    autonomyReadiness: {
+      level: "blocked",
+      score: 15,
+      headline: "Stopped until the founder resolves a block",
+      summary: "The audit chain does not verify.",
+      gaps: [
+        {
+          code: "chain-broken",
+          severity: "critical",
+          title: "The audit chain does not verify",
+          detail: "Only SEAL may run.",
+          action: "Inspect /office/audit.",
+        },
+      ],
+      nextActions: ["Inspect /office/audit."],
+    },
+    backupConfigured: true,
     work: [
       {
         id: "w1",

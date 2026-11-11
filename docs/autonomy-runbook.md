@@ -14,6 +14,10 @@ deploy target, and the one decision that stays yours.
 | 3   | Founder account     | `/office` → "First-time founder setup"                        | Opens the office. Needs `FOUNDER_SETUP_TOKEN` set once, removed after.                                    |
 | 4   | Standing delegation | `/office/delegations`                                         | The only switch that is in the app, not in git: it lets agents act at the gates without asking each time. |
 
+A long-lived server also carries its own heartbeat (`SELF_SCHEDULER=on`, the
+default), so `CRON_SECRET` is no longer the only way to start a tick. Serverless
+targets still need the external schedule and keep the same secret.
+
 Generate both secrets in one line:
 
 ```sh
@@ -35,6 +39,12 @@ into a fresh `.env`, enforces `AUTONOMY=on`, and prints the remaining steps.
 - The office nudges itself: a hit on `/api/health` or a real page view starts a
   catch-up tick when the last one is over ten minutes old, so an uptime monitor
   doubles as the heartbeat.
+- On Docker, systemd or plain Node, the first request starts the app's own
+  five-minute timer (`SELF_SCHEDULER=on`). A Postgres lease makes only one
+  replica the owner, with a fifteen-minute failover. Serverless is detected and
+  never starts a timer.
+- With `BACKUP_DIR` set, admin writes one verified offline backup a day and
+  prunes only its own expired files.
 - SEAL verifies the whole audit chain twice a day and halts the office if it
   fails to verify.
 - CI (`.github/workflows/ci.yml`) runs typecheck, lint, tests and
@@ -122,6 +132,8 @@ before configuring or enabling any online payment provider.
 | ------------- | -------------------------------------------------------------------------- | ---------------------------------------- |
 | Local proof   | `npm run verify:office`                                                    | 243 checks pass, no mocks                |
 | Health        | `GET /api/health`                                                          | 200, `"scheduler": { "overdue": false }` |
+| Autonomy      | `/office` autonomy panel, or founder-scope `/api/health`                   | readiness score, level, and named gaps    |
+| Backups       | `BACKUP_DIR` after one tick                                                 | one `vantage-ars-backup-*.json`, mode 0600 |
 | Public status | `/status`                                                                  | five lines, founder control intact       |
 | Office        | `/office`                                                                  | duties with next-due times, live queue   |
 | Tick          | GitHub → Actions → office-scheduler, or `docker compose logs -f scheduler` | a tick every ~10 minutes, HTTP 200       |

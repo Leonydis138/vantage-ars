@@ -1,16 +1,19 @@
 # Autonomy roadmap — verified state and the ordered increments
 
-Status as of 2026-10-24. Everything in "verified" was checked against the real
-systems on that date: the test suite ran green, the Neon database answered,
-and the production site was probed over HTTPS. Nothing here is aspirational
-wording — each claim names the check that proved it.
+Status as of 2026-11-11. Everything in "verified" was checked against the real
+systems on that date: the test suite ran green, the real office verification
+passed, and the production site was probed over HTTPS. Nothing here is
+aspirational wording — each claim names the check that proved it.
 
 ## Verified running today
 
 | System                                                                                      | Evidence                                                                                | Result                                                                                                              |
 | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Autonomy engine (nine agents, durable queue, founder gates, delegation, hash-chained audit) | `npm test` + `npm run verify:office`                                                    | 243/243 checks passed, no mocks, no sample data                                                                     |
-| Neon database                                                                               | connectivity check against the pooled host                                              | PostgreSQL 18.6 answered; `scripts/migrate.mjs` reports up to date — 16 migrations applied                          |
+| Autonomy engine (ten agents, 41 duties, durable queue, founder gates, delegation, hash-chained audit) | `npm test` + `npm run verify:office`                                            | 243/243 checks passed, no mocks, no sample data                                                                     |
+| In-process heartbeat                                                                        | `src/lib/office/self-scheduler.server.ts`, `migrations/0017_self_scheduler.sql`          | leased per process; serverless/test contexts refuse to start; reported in `/office` and health                     |
+| Autonomy readiness audit                                                                    | `src/lib/office/autonomy-readiness.ts`, `/office` panel, daily VANTAGE duty              | score, level and named gaps; cannot grant authority                                                                 |
+| Daily offline backup                                                                        | `keep_backup` duty with `BACKUP_DIR`                                                     | verified envelope, atomic rename, own-file pruning                                                                  |
+| Neon database                                                                               | connectivity check against the pooled host                                              | PostgreSQL 18.6 answered; `scripts/migrate.mjs` reports the 16 baseline migrations applied; `0017_self_scheduler.sql` applies on the next deploy |
 | Production site                                                                             | `GET https://www.vantage-ars.co.za/` and `/api/health`                                  | both 200; health reports `state: operational`, records and decision-record integrity ok                             |
 | Cron endpoint guard                                                                         | `GET /api/cron/floor` without a bearer token                                            | 401 Unauthorized — the endpoint only acts with `CRON_SECRET`                                                        |
 | Self-nudge                                                                                  | `src/routes/api/health.ts`, `src/routes/api/site-signal.ts`                             | both call `nudgeScheduler`, so any health probe or real page view starts a catch-up tick when the last one is stale |

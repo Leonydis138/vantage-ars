@@ -53,7 +53,13 @@ export function buildDeploymentReadiness(env: Record<string, unknown> = {}): Dep
   const cloudflareAccount = normalize(env.CLOUDFLARE_ACCOUNT_ID);
   const cloudflareToken = normalize(env.CLOUDFLARE_API_TOKEN);
   const cloudflarePartial = Boolean(cloudflareAccount) !== Boolean(cloudflareToken);
-  const aiConfigured = Boolean(cloudflareAccount && cloudflareToken) || Boolean(normalize(env.XAI_API_KEY) || normalize(env.HUGGINGFACE_API_TOKEN));
+  const aiConfigured =
+    Boolean(cloudflareAccount && cloudflareToken) ||
+    Boolean(
+      normalize(env.XAI_API_KEY) ||
+        normalize(env.HUGGINGFACE_API_KEY) ||
+        normalize(env.HF_TOKEN),
+    );
 
   const focus: string[] = [];
 

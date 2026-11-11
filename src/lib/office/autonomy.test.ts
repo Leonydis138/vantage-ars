@@ -48,6 +48,15 @@ function view(overrides: Partial<DutyView> = {}): DutyView {
     payableCents: 0,
     publishedPathCount: 10,
     chainIntact: true,
+    autonomyReadiness: {
+      level: "autonomous",
+      score: 100,
+      headline: "Fully autonomous inside the constitution",
+      summary: "No gaps.",
+      gaps: [],
+      nextActions: [],
+    },
+    backupConfigured: false,
     work: [],
     ...overrides,
   };
