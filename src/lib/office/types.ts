@@ -315,6 +315,47 @@ export type GovernanceRecord = {
   receiptKey: "environment" | "placeholder";
 };
 
+export type MonthlyGovernanceReport = {
+  month: string;
+  periodStart: string;
+  periodEnd: string;
+  generatedAt: string;
+  records: {
+    decisionEpisodes: number;
+    gatesCreated: number;
+    receiptsSigned: number;
+    receiptsWithInvalidSignatures: number;
+  };
+  delegation: {
+    policy: {
+      label: string;
+      status: string;
+      maxAmountCents: number;
+      maxActionsPerDay: number;
+      maxActionsPerMonth: number;
+    } | null;
+    usage: {
+      actions: number;
+      spendCents: number;
+      largestActionCents: number;
+      maxActionsInRecordedDay: number;
+      daily: { usageDay: string; actions: number; spendCents: number }[];
+    };
+    exceedsCurrentCeiling: {
+      perAction: boolean;
+      dailyActions: boolean;
+      monthlyActions: boolean;
+    } | null;
+  };
+  chain: {
+    ok: boolean;
+    checked: number;
+    brokenAt: string | null;
+    detail: string;
+    storedHead: string;
+  };
+};
+
 export type AuditRow = {
   id: string;
   kind: string;

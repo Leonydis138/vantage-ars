@@ -6,9 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getGovernanceRecord } from "@/lib/office/api";
+import { getGovernanceRecord, getMonthlyGovernanceReport } from "@/lib/office/api";
 import { formatDateTime, formatZar } from "@/lib/office/format";
-import type { GateRecordRow, GovernanceRecord } from "@/lib/office/types";
+import type {
+  GateRecordRow,
+  GovernanceRecord,
+  MonthlyGovernanceReport as MonthlyGovernanceReportData,
+} from "@/lib/office/types";
 
 export const Route = createFileRoute("/office/governance")({
   component: GovernancePage,
@@ -18,6 +22,30 @@ function GovernancePage() {
   const [record, setRecord] = useState<GovernanceRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reportMonth, setReportMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [monthlyReport, setMonthlyReport] = useState<MonthlyGovernanceReportData | null>(null);
+  const [reportError, setReportError] = useState<{ month: string; message: string } | null>(null);
+  const reportLoading = monthlyReport?.month !== reportMonth && reportError?.month !== reportMonth;
+
+  useEffect(() => {
+    let cancelled = false;
+    getMonthlyGovernanceReport({ data: { month: reportMonth } })
+      .then((next) => {
+        if (cancelled) return;
+        setMonthlyReport(next);
+        setReportError(null);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setReportError({
+          month: reportMonth,
+          message: "The monthly report could not be read from this session.",
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reportMonth]);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,6 +88,182 @@ function GovernancePage() {
         title="The test, the answer and the signature."
         description="Every ruling that carried consequence: the precedent episodes, the POPIA section 71 gate records, and the execution receipts signed against the audit chain."
       />
+
+      <section aria-labelledby="monthly-report-title" className="mb-8 space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
+              Monthly governance report
+            </p>
+            <h2 id="monthly-report-title" className="mt-1 text-xl font-semibold">
+              A bounded view of the record
+            </h2>
+          </div>
+          <label className="grid gap-1 text-xs text-muted">
+            Report month
+            <input
+              aria-label="Report month"
+              className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-fg"
+              type="month"
+              value={reportMonth}
+              onChange={(event) => setReportMonth(event.target.value)}
+            />
+          </label>
+        </div>
+
+        {reportLoading ? (
+          <Card className="p-4" role="status">
+            <p className="text-sm text-muted">Reading the {reportMonth} report…</p>
+          </Card>
+        ) : null}
+        {reportError?.month === reportMonth ? (
+          <p role="alert" className="rounded-xl bg-warn/15 px-4 py-3 text-sm text-warn">
+            {reportError.message}
+          </p>
+        ) : null}
+
+        {monthlyReport?.month === reportMonth ? (
+          <>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Figure
+                label="Precedent rulings"
+                value={String(monthlyReport.records.decisionEpisodes)}
+              />
+              <Figure
+                label="Gate records created"
+                value={String(monthlyReport.records.gatesCreated)}
+              />
+              <Figure
+                label="Receipts signed"
+                value={String(monthlyReport.records.receiptsSigned)}
+              />
+              <Figure
+                label="Invalid receipt signatures"
+                value={String(monthlyReport.records.receiptsWithInvalidSignatures)}
+                tone={monthlyReport.records.receiptsWithInvalidSignatures > 0 ? "warn" : undefined}
+                note="Checked against the active receipt key"
+              />
+            </div>
+
+            <Card className="p-4 sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold">Delegation use</h3>
+                  <p className="mt-1 text-xs text-muted">
+                    {monthlyReport.delegation.policy
+                      ? `Compared with current policy: ${monthlyReport.delegation.policy.label} (${monthlyReport.delegation.policy.status}).`
+                      : "No current delegation policy is configured."}
+                  </p>
+                </div>
+                {monthlyReport.delegation.exceedsCurrentCeiling ? (
+                  <Badge
+                    variant={
+                      Object.values(monthlyReport.delegation.exceedsCurrentCeiling).some(Boolean)
+                        ? "warn"
+                        : "ok"
+                    }
+                  >
+                    {Object.values(monthlyReport.delegation.exceedsCurrentCeiling).some(Boolean)
+                      ? "above a current ceiling"
+                      : "within current ceilings"}
+                  </Badge>
+                ) : null}
+              </div>
+              <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                <Detail
+                  label="Recorded actions"
+                  value={String(monthlyReport.delegation.usage.actions)}
+                />
+                <Detail
+                  label="Recorded spend"
+                  value={formatZar(monthlyReport.delegation.usage.spendCents)}
+                />
+                <Detail
+                  label="Largest action"
+                  value={formatZar(monthlyReport.delegation.usage.largestActionCents)}
+                />
+                <Detail
+                  label="Most in one recorded day"
+                  value={String(monthlyReport.delegation.usage.maxActionsInRecordedDay)}
+                />
+              </dl>
+              {monthlyReport.delegation.policy ? (
+                <p className="mt-4 text-xs text-muted">
+                  Current ceilings: {formatZar(monthlyReport.delegation.policy.maxAmountCents)} per
+                  action · {monthlyReport.delegation.policy.maxActionsPerDay} actions/day ·{" "}
+                  {monthlyReport.delegation.policy.maxActionsPerMonth} actions/month. Historical use
+                  is compared with these current ceilings; this does not establish which policy
+                  applied when an action occurred.
+                </p>
+              ) : null}
+              {monthlyReport.delegation.usage.daily.length > 0 ? (
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <caption className="mb-2 text-left text-[11px] uppercase tracking-[0.14em] text-muted">
+                      Recorded daily use
+                    </caption>
+                    <thead className="text-muted">
+                      <tr>
+                        <th className="pb-2 pr-4 font-medium">UTC day</th>
+                        <th className="pb-2 pr-4 font-medium">Actions</th>
+                        <th className="pb-2 font-medium">Spend</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {monthlyReport.delegation.usage.daily.map((day) => (
+                        <tr key={day.usageDay} className="border-t border-border">
+                          <td className="py-2 pr-4 font-mono">{day.usageDay}</td>
+                          <td className="py-2 pr-4 tabular-nums">{day.actions}</td>
+                          <td className="py-2 tabular-nums">{formatZar(day.spendCents)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </Card>
+
+            <Card className="p-4 sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold">Audit and decision chain</h3>
+                  <p className="mt-1 text-xs text-muted">
+                    {monthlyReport.chain.detail} · {monthlyReport.chain.checked} records checked
+                  </p>
+                </div>
+                <Badge variant={monthlyReport.chain.ok ? "ok" : "danger"}>
+                  {monthlyReport.chain.ok
+                    ? "chain matches stored head"
+                    : "chain verification failed"}
+                </Badge>
+              </div>
+              <p className="mt-3 truncate font-mono text-[10px] text-subtle">
+                Stored head: {monthlyReport.chain.storedHead}
+                {monthlyReport.chain.brokenAt
+                  ? ` · problem at ${monthlyReport.chain.brokenAt}`
+                  : ""}
+              </p>
+            </Card>
+
+            <div className="space-y-2 border-l-2 border-border pl-4 text-xs leading-relaxed text-muted">
+              <p>
+                The report period is {monthlyReport.periodStart} inclusive through{" "}
+                {monthlyReport.periodEnd} exclusive (UTC). Counts include decision episodes by{" "}
+                <code>decided_at</code>, gate records by <code>created_at</code>, and receipts by{" "}
+                <code>signed_at</code>. Delegation use follows its recorded calendar-month field.
+                Generated {formatDateTime(monthlyReport.generatedAt)}.
+              </p>
+              <p>
+                Monthly counts are direct database aggregates; the record lists below are bounded
+                snapshots (up to 100 rulings, gate records, or receipts each) and may not show every
+                row counted here. Chain verification checks the audit/decision rows returned with
+                the stored head in one database statement, but is not external anchoring, legal
+                certification, or proof of completeness beyond those stored records.
+              </p>
+            </div>
+          </>
+        ) : null}
+      </section>
 
       {error ? (
         <p

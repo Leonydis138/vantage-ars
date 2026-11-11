@@ -5,6 +5,8 @@ import { CONSTITUTION } from "./constitution";
 import { COMPANY, GENESIS_HASH } from "./company";
 import { authorizeAction, PAID_CAMPAIGN_MONTHLY_CAP_CENTS } from "./governor";
 import { chainHash, sha256Hex, stableStringify } from "./hash";
+import { verifyChainLinks } from "./integrity";
+import { monthInterval } from "./governance-report";
 import { assessRisk, type RiskAssessment, type RiskTier, type RiskTierName } from "./risk";
 import {
   REASON_CODES,
@@ -85,6 +87,7 @@ import type {
   InboundRow,
   LeadRow,
   LedgerRow,
+  MonthlyGovernanceReport,
   NoticeRow,
   OfficeSnapshot,
   OpportunityRow,
@@ -2244,6 +2247,124 @@ export async function readGovernanceRecord(limit = 100): Promise<GovernanceRecor
       process.env.BETTER_AUTH_SECRET?.trim() || process.env.CRON_SECRET?.trim()
         ? "environment"
         : "placeholder",
+  };
+}
+
+/** Build exact month-bounded counts and verify the complete audit/decision chain. */
+export async function readMonthlyGovernanceReport(month: string): Promise<MonthlyGovernanceReport> {
+  await ensureOffice();
+  const interval = monthInterval(month);
+  const sql = await getSql();
+  const { start, end } = interval;
+
+  const [episodes, gates, receiptRows, usage, dailyUsage, delegation, chainRows] =
+    await Promise.all([
+      sql<{ count: number }>`
+        select count(*)::int as count from decision_episodes
+        where decided_at >= ${start} and decided_at < ${end}
+      `,
+      sql<{ count: number }>`
+        select count(*)::int as count from gate_records
+        where created_at >= ${start} and created_at < ${end}
+      `,
+      sql<Record<string, unknown>>`
+        select payload_json, signature from decision_receipts
+        where signed_at >= ${start} and signed_at < ${end}
+      `,
+      sql<Record<string, unknown>>`
+        select count(*)::int as actions,
+               coalesce(sum(amount_cents), 0)::int as spend_cents,
+               coalesce(max(amount_cents), 0)::int as largest_action_cents
+        from delegation_usage
+        where delegation_id = ${DELEGATION_ID} and usage_month = ${month}
+      `,
+      sql<Record<string, unknown>>`
+        select usage_day, count(*)::int as actions,
+               coalesce(sum(amount_cents), 0)::int as spend_cents
+        from delegation_usage
+        where delegation_id = ${DELEGATION_ID} and usage_month = ${month}
+        group by usage_day
+        order by usage_day asc
+      `,
+      readDelegationTx(sql),
+      // Keep the entire chain and its stored head in one statement snapshot.
+      sql<Record<string, unknown>>`
+        with chain as (
+          select id, previous_hash, record_hash, created_at from audit_events
+          union all
+          select id, previous_hash, record_hash, created_at from decisions
+        )
+        select state.last_audit_hash as head_hash,
+               chain.id, chain.previous_hash, chain.record_hash, chain.created_at
+        from company_state state
+        left join chain on true
+        where state.id = ${COMPANY.id}
+        order by chain.created_at asc
+      `,
+    ]);
+
+  const policy = delegation
+    ? {
+        label: delegation.label,
+        status: delegation.status,
+        maxAmountCents: delegation.maxAmountCents,
+        maxActionsPerDay: delegation.maxActionsPerDay,
+        maxActionsPerMonth: delegation.maxActionsPerMonth,
+      }
+    : null;
+  const usageRow = usage[0] ?? {};
+  const daily = dailyUsage.map((row) => ({
+    usageDay: String(row.usage_day ?? ""),
+    actions: num(row.actions),
+    spendCents: num(row.spend_cents),
+  }));
+  const actions = num(usageRow.actions);
+  const spendCents = num(usageRow.spend_cents);
+  const largestActionCents = num(usageRow.largest_action_cents);
+  const maxActionsInRecordedDay = daily.reduce((max, row) => Math.max(max, row.actions), 0);
+  const chainRecords = chainRows.flatMap((row) =>
+    row.id == null
+      ? []
+      : [
+          {
+            id: String(row.id),
+            previousHash: String(row.previous_hash ?? ""),
+            recordHash: String(row.record_hash ?? ""),
+            createdAt: iso(row.created_at),
+          },
+        ],
+  );
+  const storedHead = String(chainRows[0]?.head_hash ?? GENESIS_HASH);
+  const chain = verifyChainLinks(chainRecords, storedHead);
+
+  return {
+    month,
+    periodStart: start.toISOString(),
+    periodEnd: end.toISOString(),
+    generatedAt: new Date().toISOString(),
+    records: {
+      decisionEpisodes: num(episodes[0]?.count),
+      gatesCreated: num(gates[0]?.count),
+      receiptsSigned: receiptRows.length,
+      receiptsWithInvalidSignatures: receiptRows.filter(
+        (row) => !signatureValid(String(row.payload_json ?? ""), String(row.signature ?? "")),
+      ).length,
+    },
+    delegation: {
+      policy,
+      usage: { actions, spendCents, largestActionCents, maxActionsInRecordedDay, daily },
+      exceedsCurrentCeiling: policy
+        ? {
+            perAction: largestActionCents > policy.maxAmountCents,
+            dailyActions: maxActionsInRecordedDay > policy.maxActionsPerDay,
+            monthlyActions: actions > policy.maxActionsPerMonth,
+          }
+        : null,
+    },
+    chain: {
+      ...chain,
+      storedHead,
+    },
   };
 }
 

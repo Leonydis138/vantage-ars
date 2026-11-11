@@ -42,6 +42,7 @@ import {
   resolveApproval,
   skipApproval as writeSkipApproval,
   readGovernanceRecord,
+  readMonthlyGovernanceReport,
   savePaymentInstructions,
   setOfficeHalt,
   setTicketStatus,
@@ -68,6 +69,7 @@ import type { OfficeHealth } from "./health.server";
 import { listWork, workCounts } from "./work-queue.server";
 import { redriveAbandonedWork } from "./redrive.server";
 import type { DispatchResult, OfficeSnapshot, ProposedAction } from "./types";
+import { monthInterval } from "./governance-report";
 
 async function applyPlan(
   agentId: string,
@@ -685,6 +687,16 @@ export const getGovernanceRecord = createServerFn({ method: "GET" })
   }))
   .handler(async ({ data }) => readGovernanceRecord(data.limit));
 
+/** Exact monthly governance aggregates, available to the founder only. */
+export const getMonthlyGovernanceReport = createServerFn({ method: "GET" })
+  .middleware([founderMiddleware])
+  .validator((input: { month: string }) => {
+    const month = str(input?.month, 7);
+    monthInterval(month);
+    return { month };
+  })
+  .handler(async ({ data }) => readMonthlyGovernanceReport(data.month));
+
 /** Record support time against an account. */
 export const recordServiceTime = createServerFn({ method: "POST" })
   .middleware([founderMiddleware])
@@ -1180,9 +1192,7 @@ export const getPublicStatus = createServerFn({ method: "GET" }).handler(async (
 /** Founder-only deployment projection; raw environment values never leave the server. */
 export const getDeploymentReadinessStatus = createServerFn({ method: "GET" })
   .middleware([officeAccessMiddleware])
-  .handler(async ({ context }) =>
-    context.founder ? buildDeploymentReadiness(process.env) : null,
-  );
+  .handler(async ({ context }) => (context.founder ? buildDeploymentReadiness(process.env) : null));
 
 type FounderMarketResearch = { title: string; url: string; snippet: string }[];
 
@@ -1205,11 +1215,13 @@ async function loadFounderMarketResearch(): Promise<FounderMarketResearch> {
         try {
           const url = new URL(result.url);
           if (url.protocol !== "https:") return [];
-          return [{
-            title: result.title.slice(0, 200),
-            url: url.toString(),
-            snippet: result.snippet.slice(0, 800),
-          }];
+          return [
+            {
+              title: result.title.slice(0, 200),
+              url: url.toString(),
+              snippet: result.snippet.slice(0, 800),
+            },
+          ];
         } catch {
           return [];
         }
