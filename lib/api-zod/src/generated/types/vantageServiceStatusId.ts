@@ -12,6 +12,8 @@ export type VantageServiceStatusId = typeof VantageServiceStatusId[keyof typeof 
 export const VantageServiceStatusId = {
   gmail: 'gmail',
   grok: 'grok',
+  hubspot: 'hubspot',
+  cloudflare: 'cloudflare',
   phone: 'phone',
   facebook: 'facebook',
   linkedin: 'linkedin',

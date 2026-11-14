@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { runAutomationPoll } from "./services/vantage-ars/operations";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,10 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  const timer = setInterval(() => {
+    void runAutomationPoll().catch((error: unknown) => {
+      logger.error({ err: error }, "Automation poll failed");
+    });
+  }, 60_000);
+  timer.unref();
 });

@@ -24,11 +24,16 @@ import type {
   HealthStatus,
   ListVantageArsInquiriesParams,
   UnauthorizedResponse,
+  VantageAutomationInput,
+  VantageAutomationSettings,
+  VantageCrmSyncResult,
   VantageDashboard,
   VantageError,
   VantageInquiry,
   VantageQuoteDecisionInput,
   VantageQuoteDecisionResult,
+  VantageQuotePreview,
+  VantageQuotePreviewInput,
   VantageSyncResult
 } from './api.schemas';
 
@@ -371,6 +376,334 @@ export const useSyncVantageArsInquiries = <TError = ErrorType<UnauthorizedRespon
         TContext
       > => {
       return useMutation(getSyncVantageArsInquiriesMutationOptions(options));
+    }
+
+export const getGetVantageArsAutomationUrl = () => {
+
+
+
+
+  return `/api/vantage-ars/automation`
+}
+
+/**
+ * @summary Read automated inbox processing settings
+ */
+export const getVantageArsAutomation = async ( options?: Parameters<typeof customFetch>[1]): Promise<VantageAutomationSettings> => {
+
+  return customFetch<VantageAutomationSettings>(getGetVantageArsAutomationUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetVantageArsAutomationQueryKey = () => {
+    return [
+    `/api/vantage-ars/automation`
+    ] as const;
+    }
+
+
+export const getGetVantageArsAutomationQueryOptions = <TData = Awaited<ReturnType<typeof getVantageArsAutomation>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVantageArsAutomation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVantageArsAutomationQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVantageArsAutomation>>> = ({ signal }) => getVantageArsAutomation({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVantageArsAutomation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetVantageArsAutomationQueryResult = NonNullable<Awaited<ReturnType<typeof getVantageArsAutomation>>>
+export type GetVantageArsAutomationQueryError = ErrorType<UnauthorizedResponse | ForbiddenResponse>
+
+
+/**
+ * @summary Read automated inbox processing settings
+ */
+
+export function useGetVantageArsAutomation<TData = Awaited<ReturnType<typeof getVantageArsAutomation>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVantageArsAutomation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetVantageArsAutomationQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSetVantageArsAutomationUrl = () => {
+
+
+
+
+  return `/api/vantage-ars/automation`
+}
+
+/**
+ * @summary Enable or pause automated inbox processing
+ */
+export const setVantageArsAutomation = async (vantageAutomationInput: VantageAutomationInput, options?: Parameters<typeof customFetch>[1]): Promise<VantageAutomationSettings> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<VantageAutomationSettings>(getSetVantageArsAutomationUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(vantageAutomationInput)
+  }
+);}
+
+
+
+
+
+export const getSetVantageArsAutomationMutationKey = () => ['setVantageArsAutomation'] as const;
+
+export const getSetVantageArsAutomationMutationOptions = <TError = ErrorType<VantageError | UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setVantageArsAutomation>>, TError,SetVantageArsAutomationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setVantageArsAutomation>>, TError,SetVantageArsAutomationMutationVariables, TContext> => {
+
+const mutationKey = getSetVantageArsAutomationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setVantageArsAutomation>>, SetVantageArsAutomationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  setVantageArsAutomation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetVantageArsAutomationMutationResult = NonNullable<Awaited<ReturnType<typeof setVantageArsAutomation>>>
+    export type SetVantageArsAutomationMutationBody = BodyType<VantageAutomationInput>
+    export type SetVantageArsAutomationMutationError = ErrorType<VantageError | UnauthorizedResponse | ForbiddenResponse>
+    export type SetVantageArsAutomationMutationVariables = {data: BodyType<VantageAutomationInput>}
+
+    /**
+ * @summary Enable or pause automated inbox processing
+ */
+export const useSetVantageArsAutomation = <TError = ErrorType<VantageError | UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setVantageArsAutomation>>, TError,SetVantageArsAutomationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setVantageArsAutomation>>,
+        TError,
+        SetVantageArsAutomationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetVantageArsAutomationMutationOptions(options));
+    }
+
+export const getSyncVantageArsInquiryToHubSpotUrl = (inquiryId: string,) => {
+
+
+
+
+  return `/api/vantage-ars/inquiries/${inquiryId}/crm-sync`
+}
+
+/**
+ * @summary Retry the approved inquiry contact sync to HubSpot
+ */
+export const syncVantageArsInquiryToHubSpot = async (inquiryId: string, options?: Parameters<typeof customFetch>[1]): Promise<VantageCrmSyncResult> => {
+
+  return customFetch<VantageCrmSyncResult>(getSyncVantageArsInquiryToHubSpotUrl(inquiryId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSyncVantageArsInquiryToHubSpotMutationKey = () => ['syncVantageArsInquiryToHubSpot'] as const;
+
+export const getSyncVantageArsInquiryToHubSpotMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | VantageError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncVantageArsInquiryToHubSpot>>, TError,SyncVantageArsInquiryToHubSpotMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncVantageArsInquiryToHubSpot>>, TError,SyncVantageArsInquiryToHubSpotMutationVariables, TContext> => {
+
+const mutationKey = getSyncVantageArsInquiryToHubSpotMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncVantageArsInquiryToHubSpot>>, SyncVantageArsInquiryToHubSpotMutationVariables> = (props) => {
+          const {inquiryId} = props ?? {};
+
+          return  syncVantageArsInquiryToHubSpot(inquiryId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncVantageArsInquiryToHubSpotMutationResult = NonNullable<Awaited<ReturnType<typeof syncVantageArsInquiryToHubSpot>>>
+
+    export type SyncVantageArsInquiryToHubSpotMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | VantageError>
+    export type SyncVantageArsInquiryToHubSpotMutationVariables = {inquiryId: string}
+
+    /**
+ * @summary Retry the approved inquiry contact sync to HubSpot
+ */
+export const useSyncVantageArsInquiryToHubSpot = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | VantageError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncVantageArsInquiryToHubSpot>>, TError,SyncVantageArsInquiryToHubSpotMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof syncVantageArsInquiryToHubSpot>>,
+        TError,
+        SyncVantageArsInquiryToHubSpotMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSyncVantageArsInquiryToHubSpotMutationOptions(options));
+    }
+
+export const getPreviewVantageArsQuoteUrl = (inquiryId: string,) => {
+
+
+
+
+  return `/api/vantage-ars/inquiries/${inquiryId}/preview`
+}
+
+/**
+ * @summary Preview the exact quote email without sending it
+ */
+export const previewVantageArsQuote = async (inquiryId: string,
+    vantageQuotePreviewInput: VantageQuotePreviewInput, options?: Parameters<typeof customFetch>[1]): Promise<VantageQuotePreview> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<VantageQuotePreview>(getPreviewVantageArsQuoteUrl(inquiryId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(vantageQuotePreviewInput)
+  }
+);}
+
+
+
+
+
+export const getPreviewVantageArsQuoteMutationKey = () => ['previewVantageArsQuote'] as const;
+
+export const getPreviewVantageArsQuoteMutationOptions = <TError = ErrorType<VantageError | UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewVantageArsQuote>>, TError,PreviewVantageArsQuoteMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof previewVantageArsQuote>>, TError,PreviewVantageArsQuoteMutationVariables, TContext> => {
+
+const mutationKey = getPreviewVantageArsQuoteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewVantageArsQuote>>, PreviewVantageArsQuoteMutationVariables> = (props) => {
+          const {inquiryId,data} = props ?? {};
+
+          return  previewVantageArsQuote(inquiryId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewVantageArsQuoteMutationResult = NonNullable<Awaited<ReturnType<typeof previewVantageArsQuote>>>
+    export type PreviewVantageArsQuoteMutationBody = BodyType<VantageQuotePreviewInput>
+    export type PreviewVantageArsQuoteMutationError = ErrorType<VantageError | UnauthorizedResponse | ForbiddenResponse>
+    export type PreviewVantageArsQuoteMutationVariables = {inquiryId: string;data: BodyType<VantageQuotePreviewInput>}
+
+    /**
+ * @summary Preview the exact quote email without sending it
+ */
+export const usePreviewVantageArsQuote = <TError = ErrorType<VantageError | UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewVantageArsQuote>>, TError,PreviewVantageArsQuoteMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof previewVantageArsQuote>>,
+        TError,
+        PreviewVantageArsQuoteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPreviewVantageArsQuoteMutationOptions(options));
     }
 
 export const getDecideVantageArsQuoteUrl = (inquiryId: string,) => {

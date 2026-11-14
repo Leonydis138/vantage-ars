@@ -11,4 +11,5 @@ export type VantageDashboardCounts = {
   needsInformation: number;
   quotesReady: number;
   quotesSent: number;
+  crmSyncNeeded: number;
 };

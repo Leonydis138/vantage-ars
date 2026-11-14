@@ -15,6 +15,8 @@ export type VantageServiceStatusId = typeof VantageServiceStatusId[keyof typeof 
 export const VantageServiceStatusId = {
   gmail: 'gmail',
   grok: 'grok',
+  hubspot: 'hubspot',
+  cloudflare: 'cloudflare',
   phone: 'phone',
   facebook: 'facebook',
   linkedin: 'linkedin',
@@ -42,6 +44,7 @@ export type VantageDashboardCounts = {
   needsInformation: number;
   quotesReady: number;
   quotesSent: number;
+  crmSyncNeeded: number;
 };
 
 export interface VantageDashboard {
@@ -66,6 +69,7 @@ export type VantageQuoteStatus = typeof VantageQuoteStatus[keyof typeof VantageQ
 
 export const VantageQuoteStatus = {
   ready: 'ready',
+  sending: 'sending',
   sent: 'sent',
   declined: 'declined',
   send_uncertain: 'send_uncertain',
@@ -101,6 +105,17 @@ export const VantageInquiryStatus = {
   quote_ready: 'quote_ready',
   quote_sent: 'quote_sent',
   declined: 'declined',
+  not_relevant: 'not_relevant',
+} as const;
+
+export type VantageInquiryHubspotSyncStatus = typeof VantageInquiryHubspotSyncStatus[keyof typeof VantageInquiryHubspotSyncStatus];
+
+
+export const VantageInquiryHubspotSyncStatus = {
+  not_requested: 'not_requested',
+  awaiting_approval: 'awaiting_approval',
+  synced: 'synced',
+  needs_attention: 'needs_attention',
 } as const;
 
 export interface VantageInquiry {
@@ -118,6 +133,10 @@ export interface VantageInquiry {
   status: VantageInquiryStatus;
   missingInformation: string[];
   messageBody: string;
+  hasAttachments: boolean;
+  /** @nullable */
+  hubspotContactId: string | null;
+  hubspotSyncStatus: VantageInquiryHubspotSyncStatus;
   quote: VantageQuote | null;
 }
 
@@ -128,6 +147,34 @@ export interface VantageSyncResult {
   processed: number;
   awaitingGrok: number;
   inquiries: VantageInquiry[];
+  message: string;
+}
+
+export interface VantageAutomationSettings {
+  enabled: boolean;
+  intervalMinutes: number;
+  matchingQuery: string;
+  providerReady: boolean;
+  /** @nullable */
+  lastRunAt: string | null;
+}
+
+export interface VantageAutomationInput {
+  enabled: boolean;
+}
+
+export type VantageCrmSyncResultStatus = typeof VantageCrmSyncResultStatus[keyof typeof VantageCrmSyncResultStatus];
+
+
+export const VantageCrmSyncResultStatus = {
+  synced: 'synced',
+  needs_attention: 'needs_attention',
+} as const;
+
+export interface VantageCrmSyncResult {
+  status: VantageCrmSyncResultStatus;
+  /** @nullable */
+  contactId: string | null;
   message: string;
 }
 
@@ -142,6 +189,17 @@ export interface VantageBankDetails {
   branchCode: string;
   /** @minLength 1 */
   accountType: string;
+}
+
+export interface VantageQuotePreviewInput {
+  bankDetails: VantageBankDetails;
+}
+
+export interface VantageQuotePreview {
+  recipientEmail: string;
+  subject: string;
+  plainTextBody: string;
+  plannedActions: string[];
 }
 
 export type VantageQuoteDecisionInputDecision = typeof VantageQuoteDecisionInputDecision[keyof typeof VantageQuoteDecisionInputDecision];

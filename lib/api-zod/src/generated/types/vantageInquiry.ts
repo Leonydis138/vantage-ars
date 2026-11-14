@@ -5,6 +5,7 @@
  * Vantage ARS operations and approval API
  * OpenAPI spec version: 0.1.0
  */
+import type { VantageInquiryHubspotSyncStatus } from './vantageInquiryHubspotSyncStatus';
 import type { VantageInquiryStatus } from './vantageInquiryStatus';
 import type { VantageQuote } from './vantageQuote';
 
@@ -23,5 +24,9 @@ export interface VantageInquiry {
   status: VantageInquiryStatus;
   missingInformation: string[];
   messageBody: string;
+  hasAttachments: boolean;
+  /** @nullable */
+  hubspotContactId: string | null;
+  hubspotSyncStatus: VantageInquiryHubspotSyncStatus;
   quote: VantageQuote | null;
 }

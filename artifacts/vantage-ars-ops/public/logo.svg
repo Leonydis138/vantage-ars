@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 38" fill="none">
+  <rect x="1" y="2" width="34" height="34" rx="10" fill="#102332" stroke="#63DBE8" stroke-opacity=".5"/>
+  <path d="M11 26V14h4v12h-4Zm8 0V9h4v17h-4Zm8 0V12h4v14h-4Z" fill="#63DBE8"/>
+  <text x="46" y="20" fill="#EAF2F8" font-family="Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="1.8">VANTAGE ARS</text>
+  <text x="46" y="31" fill="#91A4B4" font-family="Arial, sans-serif" font-size="6.5" letter-spacing="1.6">COGNITIVE OPERATIONS</text>
+</svg>

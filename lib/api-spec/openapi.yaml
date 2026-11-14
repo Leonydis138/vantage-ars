@@ -93,6 +93,125 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VantageError"
+  /vantage-ars/automation:
+    get:
+      operationId: getVantageArsAutomation
+      tags: [vantage-ars]
+      summary: Read automated inbox processing settings
+      responses:
+        "200":
+          description: Current processing preference and polling interval
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageAutomationSettings"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    put:
+      operationId: setVantageArsAutomation
+      tags: [vantage-ars]
+      summary: Enable or pause automated inbox processing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VantageAutomationInput"
+      responses:
+        "200":
+          description: Updated processing preference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageAutomationSettings"
+        "400":
+          description: Grok or Gmail is not ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /vantage-ars/inquiries/{inquiryId}/crm-sync:
+    post:
+      operationId: syncVantageArsInquiryToHubSpot
+      tags: [vantage-ars]
+      summary: Retry the approved inquiry contact sync to HubSpot
+      parameters:
+        - name: inquiryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: HubSpot contact sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageCrmSyncResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Enquiry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
+        "502":
+          description: HubSpot could not confirm the contact update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
+  /vantage-ars/inquiries/{inquiryId}/preview:
+    post:
+      operationId: previewVantageArsQuote
+      tags: [vantage-ars]
+      summary: Preview the exact quote email without sending it
+      parameters:
+        - name: inquiryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VantageQuotePreviewInput"
+      responses:
+        "200":
+          description: Exact recipient, subject, and rendered message for approval
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageQuotePreview"
+        "400":
+          description: Quote is not ready or banking information is incomplete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Enquiry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
   /vantage-ars/inquiries/{inquiryId}/decision:
     post:
       operationId: decideVantageArsQuote
@@ -171,7 +290,7 @@ components:
       properties:
         id:
           type: string
-          enum: [gmail, grok, phone, facebook, linkedin]
+          enum: [gmail, grok, hubspot, cloudflare, phone, facebook, linkedin]
         label:
           type: string
         status:
@@ -198,7 +317,9 @@ components:
               type: integer
             quotesSent:
               type: integer
-          required: [needsReview, needsInformation, quotesReady, quotesSent]
+            crmSyncNeeded:
+              type: integer
+          required: [needsReview, needsInformation, quotesReady, quotesSent, crmSyncNeeded]
         lastSyncAt:
           type: [string, "null"]
           format: date-time
@@ -231,7 +352,7 @@ components:
           type: string
         status:
           type: string
-          enum: [ready, sent, declined, send_uncertain]
+          enum: [ready, sending, sent, declined, send_uncertain]
         currency:
           type: string
           enum: [ZAR]
@@ -275,19 +396,26 @@ components:
           type: [string, "null"]
         status:
           type: string
-          enum: [processing, needs_review, needs_information, quote_ready, quote_sent, declined]
+          enum: [processing, needs_review, needs_information, quote_ready, quote_sent, declined, not_relevant]
         missingInformation:
           type: array
           items:
             type: string
         messageBody:
           type: string
+        hasAttachments:
+          type: boolean
+        hubspotContactId:
+          type: [string, "null"]
+        hubspotSyncStatus:
+          type: string
+          enum: [not_requested, awaiting_approval, synced, needs_attention]
         quote:
           oneOf:
             - $ref: "#/components/schemas/VantageQuote"
             - type: "null"
       required:
-        [id, customerName, customerEmail, subject, receivedAt, summary, category, urgency, status, missingInformation, messageBody, quote]
+        [id, customerName, customerEmail, subject, receivedAt, summary, category, urgency, status, missingInformation, messageBody, hasAttachments, hubspotContactId, hubspotSyncStatus, quote]
     VantageSyncResult:
       type: object
       properties:
@@ -308,6 +436,37 @@ components:
         message:
           type: string
       required: [scanned, imported, alreadySeen, processed, awaitingGrok, inquiries, message]
+    VantageAutomationSettings:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        intervalMinutes:
+          type: integer
+        matchingQuery:
+          type: string
+        providerReady:
+          type: boolean
+        lastRunAt:
+          type: [string, "null"]
+      required: [enabled, intervalMinutes, matchingQuery, providerReady, lastRunAt]
+    VantageAutomationInput:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+      required: [enabled]
+    VantageCrmSyncResult:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [synced, needs_attention]
+        contactId:
+          type: [string, "null"]
+        message:
+          type: string
+      required: [status, contactId, message]
     VantageBankDetails:
       type: object
       properties:
@@ -327,6 +486,27 @@ components:
           type: string
           minLength: 1
       required: [accountName, bankName, accountNumber, branchCode, accountType]
+    VantageQuotePreviewInput:
+      type: object
+      properties:
+        bankDetails:
+          $ref: "#/components/schemas/VantageBankDetails"
+      required: [bankDetails]
+    VantageQuotePreview:
+      type: object
+      properties:
+        recipientEmail:
+          type: string
+          format: email
+        subject:
+          type: string
+        plainTextBody:
+          type: string
+        plannedActions:
+          type: array
+          items:
+            type: string
+      required: [recipientEmail, subject, plainTextBody, plannedActions]
     VantageQuoteDecisionInput:
       type: object
       properties:

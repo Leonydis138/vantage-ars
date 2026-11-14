@@ -1,0 +1,1 @@
+- [Vantage ARS autonomy](vantage-ars-autonomy.md) — Real data only; owner approval gates external actions; preserve the existing domain.

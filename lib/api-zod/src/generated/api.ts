@@ -22,7 +22,7 @@ export const HealthCheckResponse = zod.object({
  */
 export const GetVantageArsDashboardResponse = zod.object({
   "services": zod.array(zod.object({
-  "id": zod.enum(['gmail', 'grok', 'phone', 'facebook', 'linkedin']),
+  "id": zod.enum(['gmail', 'grok', 'hubspot', 'cloudflare', 'phone', 'facebook', 'linkedin']),
   "label": zod.string(),
   "status": zod.enum(['connected', 'attention', 'not_connected', 'setup_required']),
   "detail": zod.string()
@@ -31,7 +31,8 @@ export const GetVantageArsDashboardResponse = zod.object({
   "needsReview": zod.number().int(),
   "needsInformation": zod.number().int(),
   "quotesReady": zod.number().int(),
-  "quotesSent": zod.number().int()
+  "quotesSent": zod.number().int(),
+  "crmSyncNeeded": zod.number().int()
 }),
   "lastSyncAt": zod.coerce.date().nullable(),
   "rateSourceUrl": zod.string()
@@ -56,13 +57,16 @@ export const ListVantageArsInquiriesResponseItem = zod.object({
   "summary": zod.string().nullable(),
   "category": zod.string().nullable(),
   "urgency": zod.string().nullable(),
-  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'declined']),
+  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'declined', 'not_relevant']),
   "missingInformation": zod.array(zod.string()),
   "messageBody": zod.string(),
+  "hasAttachments": zod.boolean(),
+  "hubspotContactId": zod.string().nullable(),
+  "hubspotSyncStatus": zod.enum(['not_requested', 'awaiting_approval', 'synced', 'needs_attention']),
   "quote": zod.union([zod.object({
   "id": zod.string().uuid(),
   "reference": zod.string(),
-  "status": zod.enum(['ready', 'sent', 'declined', 'send_uncertain']),
+  "status": zod.enum(['ready', 'sending', 'sent', 'declined', 'send_uncertain']),
   "currency": zod.enum(['ZAR']),
   "lines": zod.array(zod.object({
   "code": zod.string(),
@@ -100,13 +104,16 @@ export const SyncVantageArsInquiriesResponse = zod.object({
   "summary": zod.string().nullable(),
   "category": zod.string().nullable(),
   "urgency": zod.string().nullable(),
-  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'declined']),
+  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'declined', 'not_relevant']),
   "missingInformation": zod.array(zod.string()),
   "messageBody": zod.string(),
+  "hasAttachments": zod.boolean(),
+  "hubspotContactId": zod.string().nullable(),
+  "hubspotSyncStatus": zod.enum(['not_requested', 'awaiting_approval', 'synced', 'needs_attention']),
   "quote": zod.union([zod.object({
   "id": zod.string().uuid(),
   "reference": zod.string(),
-  "status": zod.enum(['ready', 'sent', 'declined', 'send_uncertain']),
+  "status": zod.enum(['ready', 'sending', 'sent', 'declined', 'send_uncertain']),
   "currency": zod.enum(['ZAR']),
   "lines": zod.array(zod.object({
   "code": zod.string(),
@@ -123,6 +130,82 @@ export const SyncVantageArsInquiriesResponse = zod.object({
 }),zod.null()])
 })),
   "message": zod.string()
+})
+
+
+/**
+ * @summary Read automated inbox processing settings
+ */
+export const GetVantageArsAutomationResponse = zod.object({
+  "enabled": zod.boolean(),
+  "intervalMinutes": zod.number().int(),
+  "matchingQuery": zod.string(),
+  "providerReady": zod.boolean(),
+  "lastRunAt": zod.string().nullable()
+})
+
+
+/**
+ * @summary Enable or pause automated inbox processing
+ */
+export const SetVantageArsAutomationBody = zod.object({
+  "enabled": zod.boolean()
+})
+
+export const SetVantageArsAutomationResponse = zod.object({
+  "enabled": zod.boolean(),
+  "intervalMinutes": zod.number().int(),
+  "matchingQuery": zod.string(),
+  "providerReady": zod.boolean(),
+  "lastRunAt": zod.string().nullable()
+})
+
+
+/**
+ * @summary Retry the approved inquiry contact sync to HubSpot
+ */
+export const SyncVantageArsInquiryToHubSpotParams = zod.object({
+  "inquiryId": zod.coerce.string().uuid()
+})
+
+export const SyncVantageArsInquiryToHubSpotResponse = zod.object({
+  "status": zod.enum(['synced', 'needs_attention']),
+  "contactId": zod.string().nullable(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Preview the exact quote email without sending it
+ */
+export const PreviewVantageArsQuoteParams = zod.object({
+  "inquiryId": zod.coerce.string().uuid()
+})
+
+
+
+export const previewVantageArsQuoteBodyBankDetailsAccountNumberMin = 3;
+
+export const previewVantageArsQuoteBodyBankDetailsBranchCodeMin = 3;
+
+
+
+
+export const PreviewVantageArsQuoteBody = zod.object({
+  "bankDetails": zod.object({
+  "accountName": zod.string().min(1),
+  "bankName": zod.string().min(1),
+  "accountNumber": zod.string().min(previewVantageArsQuoteBodyBankDetailsAccountNumberMin),
+  "branchCode": zod.string().min(previewVantageArsQuoteBodyBankDetailsBranchCodeMin),
+  "accountType": zod.string().min(1)
+})
+})
+
+export const PreviewVantageArsQuoteResponse = zod.object({
+  "recipientEmail": zod.string().email(),
+  "subject": zod.string(),
+  "plainTextBody": zod.string(),
+  "plannedActions": zod.array(zod.string())
 })
 
 
@@ -164,13 +247,16 @@ export const DecideVantageArsQuoteResponse = zod.object({
   "summary": zod.string().nullable(),
   "category": zod.string().nullable(),
   "urgency": zod.string().nullable(),
-  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'declined']),
+  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'declined', 'not_relevant']),
   "missingInformation": zod.array(zod.string()),
   "messageBody": zod.string(),
+  "hasAttachments": zod.boolean(),
+  "hubspotContactId": zod.string().nullable(),
+  "hubspotSyncStatus": zod.enum(['not_requested', 'awaiting_approval', 'synced', 'needs_attention']),
   "quote": zod.union([zod.object({
   "id": zod.string().uuid(),
   "reference": zod.string(),
-  "status": zod.enum(['ready', 'sent', 'declined', 'send_uncertain']),
+  "status": zod.enum(['ready', 'sending', 'sent', 'declined', 'send_uncertain']),
   "currency": zod.enum(['ZAR']),
   "lines": zod.array(zod.object({
   "code": zod.string(),

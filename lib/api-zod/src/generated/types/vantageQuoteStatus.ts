@@ -11,6 +11,7 @@ export type VantageQuoteStatus = typeof VantageQuoteStatus[keyof typeof VantageQ
 
 export const VantageQuoteStatus = {
   ready: 'ready',
+  sending: 'sending',
   sent: 'sent',
   declined: 'declined',
   send_uncertain: 'send_uncertain',

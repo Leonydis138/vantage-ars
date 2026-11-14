@@ -16,4 +16,5 @@ export const VantageInquiryStatus = {
   quote_ready: 'quote_ready',
   quote_sent: 'quote_sent',
   declined: 'declined',
+  not_relevant: 'not_relevant',
 } as const;
