@@ -38,8 +38,14 @@ export function RunFloorButton({ halted, onDone }: { halted: boolean; onDone?: (
   }
 
   return (
-    <Button variant="secondary" onClick={onRun} disabled={pending || halted} aria-busy={pending}>
-      {pending ? "Evaluating…" : halted ? "Office halted" : "Run the floor"}
+    <Button
+      variant="secondary"
+      onClick={onRun}
+      disabled={pending || halted}
+      aria-busy={pending}
+      title="This founder-triggered run may email queued customer notices."
+    >
+      {pending ? "Evaluating…" : halted ? "Office halted" : "Run floor (may email customers)"}
     </Button>
   );
 }
