@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 import { useOfficeSnapshot } from "@/components/office/office-snapshot-hook";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageHeader } from "@/components/office/page-header";
 import { Card } from "@/components/ui/card";
 import { formatZar } from "@/lib/office/money";
 import type { RevenueMetrics } from "@/lib/office/types";
+
+const MetricsCharts = lazy(() => import("@/components/office/metrics-charts"));
 
 export const Route = createFileRoute("/office/metrics")({
   component: MetricsPage,
@@ -65,6 +67,22 @@ function MetricsPage() {
     ["Payable", formatZar(company.payableCents), "approved expenses"],
   ] as const;
 
+  // Aggregate in one pass so dashboard work stays linear without scanning the
+  // entire decision history once for each chart category.
+  const statusCounts = decisions.reduce(
+    (counts, decision) => {
+      if (decision.status === "executed" || decision.status === "authorized") {
+        counts.executed += 1;
+      } else if (decision.status === "escalated") {
+        counts.escalated += 1;
+      } else if (decision.status === "blocked") {
+        counts.blocked += 1;
+      }
+      return counts;
+    },
+    { executed: 0, escalated: 0, blocked: 0 },
+  );
+
   const healthBars = [
     { name: "Quality", value: Math.round(health.decisionQuality * 100) },
     { name: "Constraints", value: Math.round(health.constraintAdherence * 100) },
@@ -72,14 +90,10 @@ function MetricsPage() {
     { name: "Healing", value: Math.round(health.selfHealing * 100) },
     { name: "Autonomy", value: Math.round(health.autonomousResolution * 100) },
   ];
-
   const statusBars = [
-    {
-      name: "Executed",
-      value: decisions.filter((d) => d.status === "executed" || d.status === "authorized").length,
-    },
-    { name: "Escalated", value: decisions.filter((d) => d.status === "escalated").length },
-    { name: "Blocked", value: decisions.filter((d) => d.status === "blocked").length },
+    { name: "Executed", value: statusCounts.executed },
+    { name: "Escalated", value: statusCounts.escalated },
+    { name: "Blocked", value: statusCounts.blocked },
   ];
 
   const recurringRows = recurring
@@ -106,60 +120,16 @@ function MetricsPage() {
         description="Leading and lagging indicators from live office records. Empty history is a healthy new company, not a simulation."
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2">
-        <Card className="h-64">
-          <p className="mb-3 text-xs uppercase tracking-[0.16em] text-muted">Health dimensions</p>
-          <ResponsiveContainer width="100%" height="85%">
-            <BarChart data={healthBars} layout="vertical" margin={{ left: 8, right: 8 }}>
-              <CartesianGrid stroke="var(--color-border)" horizontal={false} />
-              <XAxis type="number" domain={[0, 100]} hide />
-              <YAxis
-                type="category"
-                dataKey="name"
-                width={88}
-                tick={{ fill: "var(--color-muted)", fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                cursor={{ fill: "var(--color-raised)" }}
-                contentStyle={{
-                  background: "var(--color-surface)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: 8,
-                  color: "var(--color-fg)",
-                }}
-              />
-              <Bar dataKey="value" fill="var(--color-accent)" radius={[0, 6, 6, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-        <Card className="h-64">
-          <p className="mb-3 text-xs uppercase tracking-[0.16em] text-muted">Decision outcomes</p>
-          <ResponsiveContainer width="100%" height="85%">
-            <BarChart data={statusBars} margin={{ left: 0, right: 8, top: 8 }}>
-              <CartesianGrid stroke="var(--color-border)" vertical={false} />
-              <XAxis
-                dataKey="name"
-                tick={{ fill: "var(--color-muted)", fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis allowDecimals={false} hide />
-              <Tooltip
-                cursor={{ fill: "var(--color-raised)" }}
-                contentStyle={{
-                  background: "var(--color-surface)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: 8,
-                  color: "var(--color-fg)",
-                }}
-              />
-              <Bar dataKey="value" fill="var(--color-ok)" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-      </div>
+      <Suspense
+        fallback={
+          <div className="mb-6 grid gap-4 sm:grid-cols-2" aria-label="Loading metrics charts">
+            <Card className="h-64 animate-pulse" />
+            <Card className="h-64 animate-pulse" />
+          </div>
+        }
+      >
+        <MetricsCharts healthBars={healthBars} statusBars={statusBars} />
+      </Suspense>
 
       <Card className="overflow-hidden p-0">
         <table className="w-full text-sm">
