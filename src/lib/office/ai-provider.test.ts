@@ -31,6 +31,10 @@ describe("model provider", () => {
     assert.equal(resolveModelTarget({ XAI_API_KEY: "x" })?.provider, "xai");
     assert.equal(resolveModelTarget({}), null);
   });
+  it("honours the configured xAI model", () => {
+    const t = resolveModelTarget({ XAI_API_KEY: "x", XAI_MODEL: "grok-custom" });
+    assert.equal(t?.model, "grok-custom");
+  });
   it("ignores a malformed account id rather than building a bad URL", () => {
     assert.equal(
       resolveModelTarget({ CLOUDFLARE_ACCOUNT_ID: "../evil", CLOUDFLARE_API_TOKEN: "tok" }),
@@ -46,5 +50,15 @@ describe("model provider", () => {
     assert.equal(t?.model, "@cf/x/y");
     const xai = resolveModelTarget({ XAI_API_KEY: "x", XAI_MODEL: "grok-test" });
     assert.equal(xai?.model, "grok-test");
+  });
+  it("supports Hugging Face free models when selected", () => {
+    const t = resolveModelTarget({
+      AI_PROVIDER: "huggingface",
+      HUGGINGFACE_MODEL: "google/gemma-2-2b-it",
+      HUGGINGFACE_API_KEY: "hf_demo",
+    });
+    assert.equal(t?.provider, "huggingface");
+    assert.equal(t?.url, "https://api-inference.huggingface.co/models/google/gemma-2-2b-it");
+    assert.equal(t?.model, "google/gemma-2-2b-it");
   });
 });

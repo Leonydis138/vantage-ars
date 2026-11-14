@@ -45,10 +45,19 @@ export function resolveProvider(env) {
   const account = (env.CLOUDFLARE_ACCOUNT_ID ?? "").trim();
   const token = (env.CLOUDFLARE_API_TOKEN ?? "").trim();
   const xai = (env.XAI_API_KEY ?? "").trim();
+  const hfModel = (env.HUGGINGFACE_MODEL ?? "").trim();
   const wanted = (env.AI_PROVIDER ?? "").trim().toLowerCase();
+
+  if (wanted === "xai" && xai) {
+    return { provider: "xai", model: (env.XAI_MODEL ?? "").trim() || "grok-4.5" };
+  }
+  if (wanted === "huggingface") {
+    return { provider: "huggingface", model: hfModel || "google/gemma-2-2b-it" };
+  }
   if (wanted !== "xai" && account && token && ACCOUNT_RE.test(account))
     return { provider: "workers-ai", model: (env.WORKERS_AI_MODEL ?? "").trim() || DEFAULT_MODEL };
-  if (xai) return { provider: "xai", model: "grok-4.5" };
+  if (xai) return { provider: "xai", model: (env.XAI_MODEL ?? "").trim() || "grok-4.5" };
+  if (hfModel) return { provider: "huggingface", model: hfModel };
   return { provider: "none", model: null };
 }
 

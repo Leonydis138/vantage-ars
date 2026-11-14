@@ -196,6 +196,24 @@ SPF/DKIM records before switching the sender.
 3. Enter the founder email, a password of 12+ characters and the setup token.
 4. Remove `FOUNDER_SETUP_TOKEN` and redeploy. Sign-up is closed once a founder exists.
 
+## Final launch verification
+
+Before you brand the project live, run the final launch gate:
+
+```sh
+npm run final:check
+```
+
+This enforces the production deployment checks and then runs the repo-wide
+verification pass (`typecheck`, lint and the real office tests). It is the
+single final gate before pushing to production.
+
+## Next steps
+
+The execution roadmap for turning this into a live, revenue-generating operation is in
+[docs/next-steps.md](docs/next-steps.md). It covers launch, monitoring,
+research/AI expansion, marketing, recurring revenue, and the governance guardrails that keep the office safe.
+
 ## Deploy
 
 **[docs/deploy-vercel.md](docs/deploy-vercel.md) is the full walkthrough** — the
@@ -310,21 +328,19 @@ How the office is bounded, and what it does not do:
 **[docs/governance-architecture.md](docs/governance-architecture.md)**.
 
 <!-- omgithub:readme:start -->
-
 ## 🚀 Build, play, and remix with OMGithub
 
-**Remixed using [OMGithub.com](https://omgithub.com).**
+**Remixed using [OMGithub.com](https://go.ondev.store/).**
 
-[![OMGithub](https://img.shields.io/badge/OMGithub-Open%20project-orange?style=for-the-badge)](https://omgithub.com/Leonydis138/vantage-ars)
-[![GitHub](https://img.shields.io/badge/GitHub-Source-181717?logo=github&style=for-the-badge)](https://github.com/Leonydis138/vantage-ars)
+[![OMGithub](https://img.shields.io/badge/OMGithub-Open%20project-orange?style=for-the-badge)](https://go.ondev.store/brandedglamory/vantage-ars)
+[![GitHub](https://img.shields.io/badge/GitHub-Source-181717?logo=github&style=for-the-badge)](https://github.com/brandedglamory/vantage-ars)
 
-- 🎮 [Open the project](https://omgithub.com/Leonydis138/vantage-ars).
-- ✨ [Remix this project](https://omgithub.com/?remix=Leonydis138%2Fvantage-ars).
-- 💻 [Explore the source](https://github.com/Leonydis138/vantage-ars).
-- 🛠️ [Check build runs](https://github.com/Leonydis138/vantage-ars/actions).
-- 🐛 [Report an issue](https://github.com/Leonydis138/vantage-ars/issues).
-- 👤 [Explore the creator's projects](https://omgithub.com/Leonydis138).
-- 🌍 [Create with OMGithub](https://omgithub.com).
-- 🧬 [Explore the remix source](https://github.com/Leonydis138/vantage-ars).
-
+- 🎮 [Open the project](https://go.ondev.store/brandedglamory/vantage-ars).
+- ✨ [Remix this project](https://go.ondev.store/brandedglamory/vantage-ars?remix=1).
+- 💻 [Explore the source](https://github.com/brandedglamory/vantage-ars).
+- 🛠️ [Check build runs](https://github.com/brandedglamory/vantage-ars/actions).
+- 🐛 [Report an issue](https://github.com/brandedglamory/vantage-ars/issues).
+- 👤 [Explore the creator's projects](https://go.ondev.store/brandedglamory).
+- 🌍 [Create with OMGithub](https://go.ondev.store/).
+- 🧬 [Explore the remix source](https://github.com/brandedglamory/vantage-ars/tree/aeefb6dbe6293ab2ce2bdb0d2bafa264b3086df8).
 <!-- omgithub:readme:end -->

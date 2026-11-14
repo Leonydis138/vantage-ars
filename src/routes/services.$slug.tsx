@@ -148,9 +148,20 @@ function ServicePageView() {
         </div>
 
         <figure className="panel overflow-hidden rounded-2xl">
-          <ServiceArt slug={page.slug} className="block h-auto w-full" />
+          {page.slug === "networking" ? (
+            <img
+              src="/images/panel.jpg"
+              alt="Ethernet patch panel with labeled ports and connected network cables"
+              className="service-photo block w-full"
+              width="1400"
+              height="933"
+              decoding="async"
+            />
+          ) : (
+            <ServiceArt slug={page.slug} className="block h-auto w-full" />
+          )}
           <figcaption className="border-t border-border px-5 py-3 font-mono text-[10px] tracking-[0.18em] text-subtle uppercase">
-            Signal desk · {page.title} · {page.number}
+            {page.slug === "networking" ? "Ethernet patch panel · Network troubleshooting" : `Signal desk · ${page.title} · ${page.number}`}
           </figcaption>
         </figure>
       </section>

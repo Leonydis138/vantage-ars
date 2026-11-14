@@ -1,5 +1,29 @@
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import {
+  BarChart3,
+  Bot,
+  BriefcaseBusiness,
+  ClipboardCheck,
+  FileCheck2,
+  FileText,
+  Headphones,
+  Inbox,
+  LayoutDashboard,
+  Library,
+  Menu,
+  MessageCircle,
+  Megaphone,
+  Pause,
+  Play,
+  Repeat2,
+  Scale,
+  ScrollText,
+  SlidersHorizontal,
+  Users,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
 import { WatchtowerMark } from "@/components/brand/mark";
 import { LiveField } from "@/components/public/live-field";
 import { Button } from "@/components/ui/button";
@@ -16,30 +40,30 @@ type AppShellProps = {
   children: React.ReactNode;
 };
 
-type NavItem = { href: string; label: string };
+type NavItem = { href: string; label: string; Icon: LucideIcon };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/office", label: "Command" },
-  { href: "/office/approvals", label: "Approvals" },
-  { href: "/office/floor", label: "Floor" },
-  { href: "/office/inbox", label: "Inbox" },
-  { href: "/office/customers", label: "Customers" },
-  { href: "/office/chat", label: "Chat" },
-  { href: "/office/service", label: "Service" },
-  { href: "/office/catalogue", label: "Catalogue" },
-  { href: "/office/marketing", label: "Marketing" },
-  { href: "/office/sales", label: "Sales" },
-  { href: "/office/ledger", label: "Ledger" },
-  { href: "/office/technical", label: "Technical" },
-  { href: "/office/revenue", label: "Revenue" },
-  { href: "/office/delegations", label: "Delegation" },
-  { href: "/office/constitution", label: "Constitution" },
-  { href: "/office/governance", label: "Record" },
-  { href: "/office/audit", label: "Audit" },
-  { href: "/office/metrics", label: "Metrics" },
+  { href: "/office", label: "Command", Icon: LayoutDashboard },
+  { href: "/office/approvals", label: "Approvals", Icon: ClipboardCheck },
+  { href: "/office/floor", label: "Floor", Icon: Bot },
+  { href: "/office/inbox", label: "Inbox", Icon: Inbox },
+  { href: "/office/customers", label: "Customers", Icon: Users },
+  { href: "/office/chat", label: "Chat", Icon: MessageCircle },
+  { href: "/office/service", label: "Service", Icon: Headphones },
+  { href: "/office/catalogue", label: "Catalogue", Icon: Library },
+  { href: "/office/marketing", label: "Marketing", Icon: Megaphone },
+  { href: "/office/briefs", label: "Briefs", Icon: FileText },
+  { href: "/office/sales", label: "Sales", Icon: BriefcaseBusiness },
+  { href: "/office/ledger", label: "Ledger", Icon: FileCheck2 },
+  { href: "/office/technical", label: "Technical", Icon: Wrench },
+  { href: "/office/revenue", label: "Revenue", Icon: Repeat2 },
+  { href: "/office/delegations", label: "Delegation", Icon: SlidersHorizontal },
+  { href: "/office/constitution", label: "Constitution", Icon: Scale },
+  { href: "/office/governance", label: "Record", Icon: ClipboardCheck },
+  { href: "/office/audit", label: "Audit", Icon: ScrollText },
+  { href: "/office/metrics", label: "Metrics", Icon: BarChart3 },
 ];
 
-// Governance is the explicit exception; every other entry falls under Operations.
 const GOVERNANCE_HREFS = new Set([
   "/office/delegations",
   "/office/constitution",
@@ -66,6 +90,8 @@ const GOVERNANCE_NAV_ITEMS = NAV_ITEMS.filter((item) => GOVERNANCE_HREFS.has(ite
 
 function NavLink({ href, label, onClick }: { href: string; label: string; onClick?: () => void }) {
   const location = useLocation();
+  const item = NAV_ITEMS.find((navItem) => navItem.href === href);
+  const Icon = item?.Icon;
 
   const active =
     href === "/office" ? location.pathname === "/office" : location.pathname.startsWith(href);
@@ -76,18 +102,26 @@ function NavLink({ href, label, onClick }: { href: string; label: string; onClic
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "office-nav-link group relative flex items-center justify-between rounded-md border px-3 py-2.5 text-xs font-medium transition-all",
+        "office-nav-link group relative flex items-center justify-between rounded-xl border px-3 py-2.5 text-xs font-medium transition-all duration-200",
         active
-          ? "border-accent/30 bg-accent/10 text-accent"
+          ? "border-accent/30 bg-accent/10 text-accent shadow-[inset_0_0_0_1px_rgba(54,217,255,0.08)]"
           : "border-transparent text-muted hover:border-border/60 hover:bg-raised/40 hover:text-fg",
       )}
     >
-      <span>{label}</span>
+      <span className="relative z-10 flex min-w-0 items-center gap-2.5">
+        {Icon ? (
+          <Icon
+            aria-hidden="true"
+            className="size-4 shrink-0 opacity-75 transition-[opacity,transform] duration-200 group-hover:translate-x-0.5 group-hover:opacity-100"
+          />
+        ) : null}
+        <span>{label}</span>
+      </span>
 
-      <span
+        <span
         aria-hidden="true"
         className={cn(
-          "h-1.5 w-1.5 rounded-full transition-opacity",
+          "relative z-10 h-1.5 w-1.5 rounded-full transition-[opacity,transform] duration-200",
           active ? "bg-accent opacity-100" : "bg-muted opacity-0 group-hover:opacity-40",
         )}
       />
@@ -136,8 +170,6 @@ export function AppShell({ snapshot, children }: AppShellProps) {
   const [halting, setHalting] = useState(false);
   const [haltError, setHaltError] = useState("");
 
-  // The server is the only authority on halt state — never mirror it in local
-  // state, or the button lies the moment the scheduler halts the office.
   const halted = snapshot?.company.halted === true;
   const treasury = snapshot?.company.treasuryCents ?? 0;
   const receivable = snapshot?.company.receivableCents ?? 0;
@@ -176,30 +208,33 @@ export function AppShell({ snapshot, children }: AppShellProps) {
       </a>
 
       <div className="relative z-10 min-h-dvh">
-        {/* Desktop sidebar */}
-        <aside className="office-sidebar fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-border/70 bg-surface/50 backdrop-blur-xl lg:flex lg:flex-col">
+        <aside className="office-sidebar fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-border/70 bg-surface/65 backdrop-blur-xl lg:flex lg:flex-col">
           <div className="border-b border-border/70 px-5 py-5">
             <Link to="/office" className="group flex items-center gap-3">
-              <WatchtowerMark className="h-9 w-9 shrink-0 transition-transform group-hover:scale-105" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-accent/30 bg-accent/10 shadow-[0_0_30px_rgba(54,217,255,0.18)]">
+                <WatchtowerMark className="h-7 w-7 shrink-0 transition-transform group-hover:scale-105" />
+              </div>
 
               <div className="min-w-0">
-                <div className="font-mono text-xs font-semibold tracking-[0.2em]">VANTAGE-ARS</div>
-
-                <div className="mt-1 truncate font-mono text-[9px] uppercase tracking-[0.18em] text-muted">
+                <div className="font-mono text-[10px] font-semibold tracking-[0.22em] text-fg">
+                  VANTAGE-ARS
+                </div>
+                <div className="mt-1 truncate font-mono text-[8px] uppercase tracking-[0.18em] text-muted">
                   Network operations desk
                 </div>
               </div>
             </Link>
           </div>
 
-          <div className="border-b border-border/50 px-5 py-3">
-            <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.18em]">
+          <div className="border-b border-border/60 px-5 py-3">
+            <div className="flex items-center justify-between gap-3 font-mono text-[9px] uppercase tracking-[0.18em]">
               <span className="flex items-center gap-2 text-muted">
                 <span className={cn("live-dot", halted && "opacity-40")} />
                 {halted ? "Halted" : "A3 live"}
               </span>
-
-              <span className="text-accent">SAST</span>
+              <span className="rounded-full border border-accent/20 bg-accent/8 px-2 py-1 text-accent">
+                SAST
+              </span>
             </div>
           </div>
 
@@ -209,14 +244,14 @@ export function AppShell({ snapshot, children }: AppShellProps) {
 
           <div className="border-t border-border/70 p-4">
             <div className="mb-4 grid grid-cols-2 gap-2">
-              <div className="border border-border/60 bg-bg/30 p-3">
+              <div className="rounded-xl border border-border/60 bg-bg/30 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
                 <div className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted">
                   Treasury
                 </div>
                 <div className="mt-1 font-mono text-xs text-fg">{formatZar(treasury)}</div>
               </div>
 
-              <div className="border border-border/60 bg-bg/30 p-3">
+              <div className="rounded-xl border border-border/60 bg-bg/30 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
                 <div className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted">
                   Clock
                 </div>
@@ -252,7 +287,10 @@ export function AppShell({ snapshot, children }: AppShellProps) {
               aria-busy={halting}
               onClick={toggleHalt}
             >
-              {halting ? "Working…" : halted ? "Resume office" : "Halt office"}
+              <span className="flex items-center gap-2">
+                {halted ? <Play aria-hidden="true" className="size-4" /> : <Pause aria-hidden="true" className="size-4" />}
+                {halting ? "Working…" : halted ? "Resume office" : "Halt office"}
+              </span>
             </Button>
 
             {haltError ? (
@@ -263,7 +301,6 @@ export function AppShell({ snapshot, children }: AppShellProps) {
           </div>
         </aside>
 
-        {/* Mobile header */}
         <div className="office-mobile-header sticky top-0 z-50 border-b border-border/70 bg-bg/80 backdrop-blur-xl lg:hidden">
           <div className="flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-3">
@@ -275,7 +312,10 @@ export function AppShell({ snapshot, children }: AppShellProps) {
                     size="sm"
                     aria-label="Open office navigation"
                   >
-                    Menu
+                    <span className="flex items-center gap-2">
+                      <Menu aria-hidden="true" className="size-4" />
+                      Menu
+                    </span>
                   </Button>
                 </SheetTrigger>
 
@@ -327,8 +367,7 @@ export function AppShell({ snapshot, children }: AppShellProps) {
           </div>
         </div>
 
-        {/* Main content */}
-        <div className="lg:pl-64">
+        <div className="lg:pl-72">
           <header className="office-topbar hidden border-b border-border/70 bg-bg/65 backdrop-blur-xl lg:block">
             <div className="flex h-16 items-center justify-between px-6 xl:px-8">
               <div>

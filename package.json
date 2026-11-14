@@ -16,6 +16,8 @@
     "preview": "vite preview",
     "db:migrate": "node scripts/migrate.mjs",
     "cf:check": "node scripts/cloudflare-check.mjs",
+    "deploy:check": "node scripts/deploy-check.mjs",
+    "final:check": "node scripts/final-check.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
