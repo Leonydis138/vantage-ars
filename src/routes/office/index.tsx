@@ -27,6 +27,11 @@ function CommandCenter() {
   const liveAgents = snapshot.agents.filter((a) => a.status !== "halted").length;
   const unrouted = snapshot.inbound.filter((i) => i.status === "received").length;
   const openTickets = snapshot.tickets.filter((t) => t.status !== "resolved").length;
+  const openTechnicalTickets = snapshot.tickets.filter(
+    (ticket) =>
+      (ticket.ownerAgent === "forge" || ticket.ownerAgent === "keep") &&
+      ticket.status !== "resolved",
+  ).length;
   const pipeline = snapshot.opportunities
     .filter((o) => o.stage !== "lost")
     .reduce((sum, o) => sum + o.valueCents, 0);
@@ -42,29 +47,55 @@ function CommandCenter() {
       />
       <MailNote notices={snapshot.notices} mail={snapshot.mail} />
 
-      <div className="mb-6 grid gap-px overflow-hidden rounded-xl bg-border shadow-[var(--shadow-border)] sm:grid-cols-2 xl:grid-cols-4">
-        <Metric
-          label="Treasury"
-          value={formatZar(snapshot.company.treasuryCents)}
-          hint="Grows only from receipts"
-        />
-        <Metric
-          label="Waiting on you"
-          value={String(pending.length)}
-          hint="Founder gates"
-          warn={pending.length > 0}
-        />
-        <Metric
-          label="Autonomy health"
-          value={snapshot.health.overall.toFixed(2)}
-          hint={`${liveAgents} identities live`}
-        />
-        <Metric
-          label="Decisions"
-          value={String(snapshot.health.decisionCount)}
-          hint={`${Math.round(snapshot.health.autonomousResolution * 100)}% autonomous`}
-        />
-      </div>
+      <section aria-labelledby="operations-pulse" className="mb-6">
+        <h2 id="operations-pulse" className="mb-3 font-serif text-2xl">
+          Operations pulse
+        </h2>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div>
+            <h3 className="mb-2 font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
+              Business
+            </h3>
+            <div className="grid gap-px overflow-hidden rounded-xl bg-border shadow-[var(--shadow-border)] sm:grid-cols-3">
+              <Metric
+                label="Treasury"
+                value={formatZar(snapshot.company.treasuryCents)}
+                hint="Grows only from receipts"
+              />
+              <Metric label="Pipeline" value={formatZar(pipeline)} hint="Open opportunities" />
+              <Metric
+                label="Receivable"
+                value={formatZar(snapshot.company.receivableCents)}
+                hint="Issued invoices"
+              />
+            </div>
+          </div>
+          <div>
+            <h3 className="mb-2 font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
+              Technical
+            </h3>
+            <div className="grid gap-px overflow-hidden rounded-xl bg-border shadow-[var(--shadow-border)] sm:grid-cols-3">
+              <Metric
+                label="Autonomy health"
+                value={snapshot.health.overall.toFixed(2)}
+                hint={`${liveAgents} identities live`}
+              />
+              <Metric
+                label="Open technical tickets"
+                value={String(openTechnicalTickets)}
+                hint="FORGE · KEEP"
+                warn={openTechnicalTickets > 0}
+              />
+              <Metric
+                label="Hard violations"
+                value={String(snapshot.health.hardViolations)}
+                hint="Target: zero"
+                warn={snapshot.health.hardViolations > 0}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
 
       <div className="mb-6 flex flex-wrap gap-2">
         <SituationChip
@@ -104,6 +135,54 @@ function CommandCenter() {
           warn={snapshot.health.hardViolations > 0}
         />
       </div>
+
+      <section aria-labelledby="approval-queue" className="mb-6">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 id="approval-queue" className="font-serif text-2xl">
+              Approval queue
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              {pending.length} founder {pending.length === 1 ? "decision" : "decisions"} waiting
+            </p>
+          </div>
+          <Link to="/office/approvals" className="text-sm text-muted hover:text-fg">
+            Review approvals
+          </Link>
+        </div>
+        {pending.length === 0 ? (
+          <p className="rounded-xl bg-surface px-4 py-3 text-sm text-muted shadow-[var(--shadow-border)]">
+            No approvals are waiting.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border overflow-hidden rounded-xl bg-surface shadow-[var(--shadow-border)]">
+            {pending.slice(0, 5).map((approval) => (
+              <li
+                key={approval.id}
+                className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="text-sm text-fg">{approval.title}</p>
+                  <p className="text-xs text-muted">
+                    {approval.kind.replaceAll("_", " ")}
+                    {approval.companyName ? ` · ${approval.companyName}` : ""}
+                    {" · "}
+                    {formatDateTime(approval.createdAt)}
+                  </p>
+                </div>
+                <span className="font-mono text-sm tabular-nums text-fg">
+                  {formatZar(approval.amountCents)}
+                </span>
+              </li>
+            ))}
+            {pending.length > 5 ? (
+              <li className="px-4 py-3 text-xs text-muted">
+                +{pending.length - 5} more waiting in the approval queue
+              </li>
+            ) : null}
+          </ul>
+        )}
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
         <DispatchPanel />

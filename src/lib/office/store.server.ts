@@ -217,6 +217,37 @@ export async function appendAudit(
   return withChain((tx) => appendAuditTx(tx, kind, title, body, actor));
 }
 
+export async function redriveWorkWithAudit(
+  workId: string,
+): Promise<{ ok: true; kind: string; agentId: string } | { ok: false; error: string }> {
+  return withChain(async (tx) => {
+    const rows = await tx<{ id: string; kind: string; agent_id: string }>`
+      update work_items
+      set status = 'open',
+          attempts = 0,
+          last_error = null,
+          due_at = now(),
+          started_at = null,
+          finished_at = null,
+          updated_at = now()
+      where id = ${workId} and status in ('abandoned', 'failed')
+      returning id, kind, agent_id
+    `;
+    if (!rows.length) {
+      return { ok: false, error: "That item is not in the dead-letter queue." };
+    }
+
+    await appendAuditTx(
+      tx,
+      "work_redriven",
+      "Abandoned work put back on the queue",
+      `The founder redrove a "${String(rows[0].kind)}" item for ${String(rows[0].agent_id)}. Redrive is a founder action, never automatic.`,
+      "founder",
+    );
+    return { ok: true, kind: String(rows[0].kind), agentId: String(rows[0].agent_id) };
+  });
+}
+
 async function loadCompany(): Promise<CompanySnapshot> {
   return loadCompanyTx(await getSql());
 }
@@ -1519,64 +1550,69 @@ async function executeAuthorized(
     }
     case "record_inbound_payment": {
       const id = randomUUID();
+      const invoiceId = action.relatedId?.trim();
+      if (!invoiceId) {
+        throw new Error("A receipt must be matched to a specific invoice.");
+      }
       // A receipt belongs to at most one invoice. The outside check is not
       // enough when two callers race; this one runs under the audit-chain lock
       // and inside the same transaction as the money movement.
-      if (action.relatedId) {
-        const already = await sql<{ id: string }>`
-          select id from ledger_entries
-          where kind = 'receipt' and related_id = ${action.relatedId}
-          limit 1
-        `;
-        if (already.length) throw new Error("A receipt is already recorded for this invoice.");
+      const invoice = await sql<{ amount_cents: number; status: string; vat_cents: number }>`
+        select amount_cents, status, vat_cents from ledger_entries
+        where id = ${invoiceId} and kind = 'invoice'
+        for update
+      `.then((rows) => rows[0]);
+      if (!invoice || invoice.status !== "issued") {
+        throw new Error("That invoice is not on file or is no longer awaiting payment.");
       }
+      if (num(invoice.amount_cents) !== amount) {
+        throw new Error("A receipt must match the full invoice amount.");
+      }
+      const already = await sql<{ id: string }>`
+        select id from ledger_entries
+        where kind = 'receipt' and related_id = ${invoiceId}
+        limit 1
+      `;
+      if (already.length) throw new Error("A receipt is already recorded for this invoice.");
       // Cash may only ever be credited against money that is actually owed. The
       // old code did `treasury += amount` unconditionally and then floored the
       // receivable at zero, so a duplicated receipt — or a payment recorded
       // against nothing — created money from nothing.
       const applied = await applyReceiptAgainstReceivable(sql, amount);
-      if (applied <= 0) {
+      if (applied !== amount) {
         throw new Error(
-          "No outstanding invoice to apply this receipt against. Record the invoice first, or file the payment as a notice for the founder to confirm.",
+          "The outstanding receivable does not cover this full invoice. No receipt was recorded.",
         );
       }
       await sql`
         insert into ledger_entries (id, kind, counterparty, amount_cents, vat_cents, status, memo, related_id)
-        values (${id}, 'receipt', ${companyName || "Counterparty"}, ${applied}, 0, 'cleared', ${action.rationale}, ${action.relatedId ?? null})
+        values (${id}, 'receipt', ${companyName || "Counterparty"}, ${applied}, 0, 'cleared', ${action.rationale}, ${invoiceId})
       `;
-      if (action.relatedId) {
-        const invoice = await sql<{ vat_cents: number }>`
-          select vat_cents from ledger_entries
-          where id = ${action.relatedId} and kind = 'invoice'
-          for update
-        `.then((rows) => rows[0]);
-        if (!invoice) throw new Error("That invoice is not on file.");
-        await sql`
-          update ledger_entries set status = 'paid'
-          where id = ${action.relatedId} and kind = 'invoice'
-        `;
-        await sql`
-          update billing_cycles
-          set status = 'paid', paid_at = now()
-          where invoice_id = ${action.relatedId} and status <> 'paid'
-        `;
-        // The customer-facing receipt is written in this transaction too, so a
-        // payment can never exist without the paper that acknowledges it.
-        const receiptId = randomUUID();
-        const invoiceVat = num(invoice.vat_cents);
-        await sql`
-          insert into documents (id, title, kind, status, summary, related_id)
-          select ${receiptId}, ${`Receipt · ${companyName || "Counterparty"}`}, 'receipt',
-                 'recorded', ${receiptCopy(companyName || "Counterparty", applied, {
-                   treatment: invoiceVat > 0 ? "included" : "none",
-                   netCents: applied - invoiceVat,
-                   vatCents: invoiceVat,
-                 })}, ${action.relatedId}
-          where not exists (
-            select 1 from documents where kind = 'receipt' and related_id = ${action.relatedId}
-          )
-        `;
-      }
+      await sql`
+        update ledger_entries set status = 'paid'
+        where id = ${invoiceId} and kind = 'invoice'
+      `;
+      await sql`
+        update billing_cycles
+        set status = 'paid', paid_at = now()
+        where invoice_id = ${invoiceId} and status <> 'paid'
+      `;
+      // The customer-facing receipt is written in this transaction too, so a
+      // payment can never exist without the paper that acknowledges it.
+      const receiptId = randomUUID();
+      const invoiceVat = num(invoice.vat_cents);
+      await sql`
+        insert into documents (id, title, kind, status, summary, related_id)
+        select ${receiptId}, ${`Receipt · ${companyName || "Counterparty"}`}, 'receipt',
+               'recorded', ${receiptCopy(companyName || "Counterparty", applied, {
+                 treatment: invoiceVat > 0 ? "included" : "none",
+                 netCents: applied - invoiceVat,
+                 vatCents: invoiceVat,
+               })}, ${invoiceId}
+        where not exists (
+          select 1 from documents where kind = 'receipt' and related_id = ${invoiceId}
+        )
+      `;
       break;
     }
     case "open_ticket": {
@@ -3468,7 +3504,7 @@ export async function readPublicQuote(token: string, countView = true): Promise<
       d.summary       as document_summary,
       d.created_at    as issued_at,
       o.company_name  as company_name,
-      o.value_cents   as value_cents
+      coalesce(d.amount_cents, o.value_cents) as amount_cents
     from documents d
     join opportunities o on o.id = d.related_id
     where d.id = ${String(link.document_id)}
@@ -3505,7 +3541,7 @@ export async function readPublicQuote(token: string, countView = true): Promise<
     ok: true,
     state,
     companyName: String(joined.company_name),
-    amountCents: num(joined.value_cents),
+    amountCents: num(joined.amount_cents),
     scope,
     reference: scope.match(/Reference:\s*(VA-[A-Z0-9]+)/)?.[1] ?? null,
     paymentNote: paymentNote(company.paymentInstructions),

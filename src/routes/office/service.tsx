@@ -17,13 +17,19 @@ function ServicePage() {
   const snapshot = useOfficeSnapshot();
   const cases = snapshot.tickets.filter((ticket) => ticket.ownerAgent === "desk");
   const waiting = snapshot.inbound.filter((item) => item.routedTo === "desk");
+  const drafts = snapshot.documents.filter(
+    (document) =>
+      document.kind === "service_ack" ||
+      document.kind === "technical_plan" ||
+      document.kind === "correspondence",
+  );
 
   return (
     <div className="enter-up mx-auto max-w-5xl">
       <PageHeader
         kicker="Customer service · DESK"
-        title="The conversation stops here."
-        description="DESK drafts replies and tracks the case. It does not sell, quote, or spend. A refund, cancellation, or anything that could lose the customer waits on you."
+        title="Founder approval before action."
+        description="The office classifies cases and prepares internal drafts. It does not send a reply, start technical work, or mark a fault resolved without your action. Refunds, cancellations, and concessions always wait on you."
       />
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
         <DispatchPanel
@@ -71,6 +77,33 @@ function ServicePage() {
                   </Badge>
                   <TicketActions id={ticket.id} status={ticket.status} />
                 </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-8">
+        <h2 className="mb-3 font-serif text-2xl">Drafts for founder review</h2>
+        {drafts.length === 0 ? (
+          <EmptyState
+            title="No drafts"
+            body="Acknowledgements and technical plans appear here for review."
+          />
+        ) : (
+          <ul className="space-y-2">
+            {drafts.map((document) => (
+              <li
+                key={document.id}
+                className="rounded-xl bg-surface px-4 py-3 shadow-[var(--shadow-border)]"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm">{document.title}</p>
+                  <Badge variant={document.status === "draft" ? "warn" : "default"}>
+                    {document.status}
+                  </Badge>
+                </div>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-muted">{document.summary}</p>
               </li>
             ))}
           </ul>

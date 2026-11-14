@@ -71,4 +71,54 @@ describe("floor plan", () => {
     });
     assert.deepEqual(tasks, []);
   });
+
+  it("does not draft the same technical plan twice", () => {
+    const tasks = planFloor({
+      campaigns: [{ status: "active", budgetCents: 0, channel: "owned" }],
+      leads: [],
+      inbound: [],
+      documents: [{ kind: "technical_plan", relatedId: "t-1" }],
+      tickets: [
+        {
+          id: "t-1",
+          title: "No dial tone",
+          summary: "No dial tone on the trunk.",
+          status: "open",
+          ownerAgent: "forge",
+          relatedId: null,
+        },
+      ],
+    });
+    assert.deepEqual(tasks, []);
+  });
+
+  it("plans a technical procedure without changing the open ticket", () => {
+    const tasks = planFloor({
+      campaigns: [{ status: "active", budgetCents: 0, channel: "owned" }],
+      leads: [],
+      inbound: [],
+      documents: [],
+      tickets: [
+        {
+          id: "t-2",
+          title: "No dial tone",
+          summary: "No dial tone on the trunk.",
+          status: "open",
+          ownerAgent: "forge",
+          relatedId: null,
+        },
+      ],
+    });
+    assert.deepEqual(
+      tasks.filter((task) => task.kind === "diagnose"),
+      [
+        {
+          kind: "diagnose",
+          ticketId: "t-2",
+          title: "No dial tone",
+          summary: "No dial tone on the trunk.",
+        },
+      ],
+    );
+  });
 });

@@ -337,10 +337,19 @@ async function main() {
   check("a refused receipt did not create money", Number(moneyAfter[0].treasury_cents) === 0);
 
   // ── 9. The customer accepts on their link, and only once ───────────────────
-  const { createQuoteLink, answerPublicQuote } = await import("../src/lib/office/store.server.ts");
+  const { createQuoteLink, answerPublicQuote, readPublicQuote } =
+    await import("../src/lib/office/store.server.ts");
   const quoteDoc = await sql`select id from documents where kind = 'quote' limit 1`;
   const link = await createQuoteLink(quoteDoc[0].id);
   check("a customer link can be issued for a waiting quote", link.ok);
+  await sql`update opportunities set value_cents = 700000 where id = ${opp.id}`;
+  const publicQuote = await readPublicQuote(link.token, false);
+  check(
+    "the public quote shows its snapshotted figure, not a changed opportunity value",
+    publicQuote.ok && publicQuote.amountCents === 644000,
+    JSON.stringify(publicQuote),
+  );
+  await sql`update opportunities set value_cents = 644000 where id = ${opp.id}`;
 
   const answer = await answerPublicQuote(link.token, {
     outcome: "accepted",
@@ -412,11 +421,71 @@ async function main() {
   );
   check("the invoice did not touch treasury", Number(afterInvoice[0].treasury_cents) === 0);
 
-  await recordInvoiceReceipt(
-    invoices.length
-      ? ""
-      : (await sql`select id from ledger_entries where kind = 'invoice' limit 1`)[0].id,
+  const issuedInvoice = (
+    await sql`
+    select id, amount_cents from ledger_entries where kind = 'invoice' limit 1
+  `
+  )[0];
+  const partialReceipt = await applyProposedAction(
+    "ledger",
+    {
+      kind: "record_inbound_payment",
+      title: "Partial invoice receipt",
+      rationale: "A partial amount must not settle a full invoice.",
+      confidence: 0.95,
+      amountCents: Number(issuedInvoice.amount_cents) - 1,
+      companyName: "Harbour Point Dental",
+      relatedId: issuedInvoice.id,
+      payload: {},
+    },
+    { source: "verify" },
   );
+  check(
+    "a partial receipt cannot mark the invoice paid",
+    partialReceipt.status === "blocked" && partialReceipt.error?.includes("full invoice amount"),
+    JSON.stringify(partialReceipt),
+  );
+  let invoiceState = await sql`
+    select status from ledger_entries where id = ${issuedInvoice.id}
+  `;
+  check(
+    "a refused partial receipt leaves the invoice issued",
+    invoiceState[0]?.status === "issued",
+  );
+
+  await sql`update company_state set receivable_cents = ${Number(issuedInvoice.amount_cents) - 1}`;
+  const underfundedReceipt = await applyProposedAction(
+    "ledger",
+    {
+      kind: "record_inbound_payment",
+      title: "Receipt exceeds recorded receivable",
+      rationale: "A full invoice receipt cannot exceed the receivable balance.",
+      confidence: 0.95,
+      amountCents: Number(issuedInvoice.amount_cents),
+      companyName: "Harbour Point Dental",
+      relatedId: issuedInvoice.id,
+      payload: {},
+    },
+    { source: "verify" },
+  );
+  check(
+    "a receipt is refused when the receivable cannot cover the invoice",
+    underfundedReceipt.status === "blocked" &&
+      underfundedReceipt.error?.includes("does not cover this full invoice"),
+    JSON.stringify(underfundedReceipt),
+  );
+  invoiceState = await sql`select status from ledger_entries where id = ${issuedInvoice.id}`;
+  const underfundedMoney = await sql`select treasury_cents, receivable_cents from company_state`;
+  check(
+    "a refused underfunded receipt changes no money or invoice state",
+    invoiceState[0]?.status === "issued" &&
+      Number(underfundedMoney[0].treasury_cents) === 0 &&
+      Number(underfundedMoney[0].receivable_cents) === Number(issuedInvoice.amount_cents) - 1,
+    JSON.stringify({ invoiceState, underfundedMoney }),
+  );
+  await sql`update company_state set receivable_cents = ${Number(issuedInvoice.amount_cents)}`;
+
+  await recordInvoiceReceipt(issuedInvoice.id);
   const afterReceipt = await sql`select treasury_cents, receivable_cents from company_state`;
   check(
     "the receipt moved money into treasury",
@@ -431,7 +500,11 @@ async function main() {
 
   // ── 11. Service desk and technical work ────────────────────────────────────
   await advanceAndTick(60);
-  const ackDocuments = await sql`select kind, status from documents where kind = 'service_ack'`;
+  const ackDocuments = await sql`
+    select kind, status, title from documents
+    where kind = 'service_ack'
+       or (kind = 'correspondence' and title like 'Service acknowledgement%')
+  `;
   check(
     "the service desk acknowledged the fault on its own",
     ackDocuments.length >= 1,
@@ -443,12 +516,28 @@ async function main() {
     JSON.stringify(ackDocuments),
   );
 
-  const procedures =
-    await sql`select summary from tickets where owner_agent = 'desk' or owner_agent = 'forge'`;
+  const procedures = await sql`select summary, status from documents where kind = 'technical_plan'`;
   check(
-    "technical wrote a real procedure",
+    "technical wrote a reviewable procedure draft",
     procedures.some((row) => /FORGE:/.test(row.summary)),
-    JSON.stringify(procedures.map((row) => row.summary.slice(0, 60))),
+    JSON.stringify(
+      procedures.map((row) => ({ status: row.status, summary: row.summary.slice(0, 60) })),
+    ),
+  );
+  check(
+    "technical drafts did not start customer work",
+    procedures.every((row) => row.status === "draft"),
+    JSON.stringify(procedures.map((row) => row.status)),
+  );
+  const procedureTickets = await sql`
+    select t.status
+    from tickets t
+    join documents d on d.related_id = t.id and d.kind = 'technical_plan'
+  `;
+  check(
+    "tickets with technical drafts remain open for founder approval",
+    procedureTickets.every((row) => row.status === "open"),
+    JSON.stringify(procedureTickets.map((row) => row.status)),
   );
 
   // ── 12. Nobody emailed a customer ──────────────────────────────────────────
@@ -1740,7 +1829,7 @@ async function main() {
   check(
     "the customer CSV carries the account and its plan",
     customerAccountsToCsv(customerBook.accounts).includes(customer) &&
-      customerAccountsToCsv(customerBook.accounts).includes("Managed support plan"),
+      customerAccountsToCsv(customerBook.accounts).includes(plan.title),
     customerAccountsToCsv(customerBook.accounts).slice(0, 300),
   );
 
@@ -1912,6 +2001,12 @@ async function main() {
   // The founder's own path: the same call the redrive button makes.
   const redriven = await redriveAbandonedWork(filed.id);
   check("the founder can redrive a dead item", redriven.ok, JSON.stringify(redriven));
+  const duplicateRedrive = await redriveAbandonedWork(filed.id);
+  check(
+    "a redrive cannot be applied twice",
+    !duplicateRedrive.ok,
+    JSON.stringify(duplicateRedrive),
+  );
   const back = (await listWork(500)).find((item) => item.id === filed.id);
   check("the redriven item is open again", back.status === "open", back.status);
   check("its attempt count is reset", back.attempts === 0, String(back.attempts));

@@ -22,9 +22,8 @@ jobs:
     name: Deploy Worker to Cloudflare
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      # wrangler auto-detects this env var; account_id lives in wrangler.toml.
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -41,10 +40,16 @@ jobs:
       # wrangler resolves --file against the working directory, not the config
       # file, so both SQL paths must be repository-relative.
       - name: Apply D1 schema
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npx wrangler@4 d1 execute vantage-data --config workers/vantage-ars/wrangler.toml --remote --file=workers/vantage-ars/schema.sql --yes
 
       - name: Seed D1 data
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npx wrangler@4 d1 execute vantage-data --config workers/vantage-ars/wrangler.toml --remote --file=workers/vantage-ars/seed.sql --yes
 
       - name: Deploy Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npx wrangler@4 deploy --config workers/vantage-ars/wrangler.toml --minify

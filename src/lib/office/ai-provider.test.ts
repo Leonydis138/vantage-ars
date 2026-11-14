@@ -44,5 +44,7 @@ describe("model provider", () => {
       WORKERS_AI_MODEL: "@cf/x/y",
     });
     assert.equal(t?.model, "@cf/x/y");
+    const xai = resolveModelTarget({ XAI_API_KEY: "x", XAI_MODEL: "grok-test" });
+    assert.equal(xai?.model, "grok-test");
   });
 });
