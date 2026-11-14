@@ -49,6 +49,51 @@ function MetricsPage() {
   const { health, company, decisions } = snapshot;
   const recurring = readRecurringFigures(snapshot.revenue);
 
+  const delegation = snapshot.delegation;
+  const usage = snapshot.delegationUsage;
+
+  // What the founder has actually handed over, and how much of it has been
+  // spent. Read from the same rows the cap enforcement uses, so this screen can
+  // never flatter the office's own authority.
+  const authorityRows: [string, string, string][] = delegation
+    ? [
+        ["Standing delegation", delegation.label, delegation.status],
+        [
+          "Actions today",
+          `${usage.usedToday} of ${delegation.maxActionsPerDay}`,
+          `${formatZar(usage.spentTodayCents)} spent today`,
+        ],
+        [
+          "Actions this month",
+          `${usage.usedThisMonth} of ${delegation.maxActionsPerMonth}`,
+          `${formatZar(usage.spentThisMonthCents)} spent this month`,
+        ],
+        ["Most any single action", formatZar(delegation.maxAmountCents), "the delegation's own cap"],
+        [
+          "Customer mail",
+          delegation.allowCustomerMail ? "delegated" : "not delegated",
+          "inside the envelope only",
+        ],
+        [
+          "Founder decisions waiting",
+          String(health.pendingApprovals),
+          "nothing expires into an approval",
+        ],
+      ]
+    : [
+        ["Standing delegation", "none", "every customer win, invoice and email waits for you"],
+        [
+          "Delegated actions this month",
+          String(usage.usedThisMonth),
+          "authority the office could spend on its own",
+        ],
+        [
+          "Founder decisions waiting",
+          String(health.pendingApprovals),
+          "nothing expires into an approval",
+        ],
+      ];
+
   const rows = [
     ["Overall autonomy health", health.overall.toFixed(3), "≥ 0.90"],
     ["Decision quality", health.decisionQuality.toFixed(3), "≥ 0.90"],
@@ -222,6 +267,47 @@ function MetricsPage() {
           </Card>
         </section>
       ) : null}
+
+      <section className="mt-10">
+        <h2 className="mb-3 font-serif text-2xl">Delegated authority</h2>
+        <p className="mb-3 text-sm text-muted">
+          How far the office may act without you, and how much of that it has used. The caps are
+          counted from the same rows that enforce them, so a retried tick cannot slip past one. The
+          office files a weekly revenue forecast and a monthly governance report as documents on
+          its own.
+        </p>
+        <Card className="overflow-hidden p-0">
+          <table className="w-full text-sm">
+            <caption className="sr-only">
+              Delegated authority: the standing policy, the actions and spend used today and this
+              month against its caps, whether customer mail is delegated, and how many founder
+              decisions are waiting.
+            </caption>
+            <thead className="text-left text-xs uppercase tracking-[0.14em] text-muted">
+              <tr className="border-b border-border">
+                <th scope="col" className="px-5 py-3 font-medium">
+                  Authority
+                </th>
+                <th scope="col" className="px-5 py-3 font-medium">
+                  In force
+                </th>
+                <th scope="col" className="hidden px-5 py-3 font-medium sm:table-cell">
+                  Basis
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {authorityRows.map((row) => (
+                <tr key={row[0]} className="border-b border-border last:border-0">
+                  <td className="px-5 py-3">{row[0]}</td>
+                  <td className="px-5 py-3 font-mono tabular-nums">{row[1]}</td>
+                  <td className="hidden px-5 py-3 text-muted sm:table-cell">{row[2]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </section>
     </div>
   );
 }

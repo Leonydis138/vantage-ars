@@ -57,7 +57,7 @@ reconstructing it from the queue afterwards.
                  └──────┬───────┘
                         │  no
                  ┌──────▼───────────┐
-      41 duties → │      PLAN        │  pure function of the real office state
+      43 duties → │      PLAN        │  pure function of the real office state
                  └──────┬───────────┘  returns work, or nothing
                         │
                  ┌──────▼───────────┐
@@ -76,10 +76,11 @@ reconstructing it from the queue afterwards.
 
 ## The duties
 
-Forty-one duties, every agent has at least one, and none of them can act
-outside its owner's role. The most recent three are the office auditing its own
-autonomy, reviewing customer health, and writing its daily offline backup
-(below).
+Forty-three duties, every agent has at least one, and none of them can act
+outside its owner's role. The most recent five are the office auditing its own
+autonomy, reviewing customer health, writing its daily offline backup (below),
+forecasting the month's revenue from its own books, and reporting monthly on how
+much of the founder's standing delegation it actually used.
 
 | Agent   | Duty                          | Cadence | What it does with real records                                                                                                                                                                               |
 | ------- | ----------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -88,6 +89,8 @@ autonomy, reviewing customer health, and writing its daily offline backup
 | VANTAGE | `vantage_briefing`            | 24h     | One factual daily summary for the founder: books, pipeline, queue, last day's activity — every figure from a record                                                                                          |
 | VANTAGE | `vantage_approval_watch`      | 168h    | Reminds the founder weekly about approvals pending for seven days; links to the approval desk and never resolves them                                                                                        |
 | VANTAGE | `vantage_autonomy_audit`      | 24h     | Scores the office's own distance from unattended work and reports every gap with the one action that closes it. Critical gaps daily, optional warnings weekly. It cannot grant itself authority. |
+| VANTAGE | `vantage_revenue_forecast`    | 168h    | Files one weekly internal forecast from the rows the office already holds: the recurring book in force, the periods due, the open pipeline and the receivable. No trend is extrapolated and no customer is contacted.                                                                                          |
+| VANTAGE | `vantage_governance_report`   | 720h    | Files one monthly internal report on delegated authority: actions and spend used against the delegation's own caps, founder decisions still waiting, and whether the audit chain verified on the tick that wrote it. It reports authority; it can never grant, widen or revive it.              |
 | FOYER   | `foyer_intake`                | 10m     | Classifies unrouted enquiries into a lead or a service ticket                                                                                                                                                |
 | FOYER   | `foyer_stale_intake`          | 60m     | Escalates an enquiry nobody answered after four hours                                                                                                                                                        |
 | SIGNAL  | `signal_site_signals`         | 12h     | Reads real recorded page views and says what they mean                                                                                                                                                       |

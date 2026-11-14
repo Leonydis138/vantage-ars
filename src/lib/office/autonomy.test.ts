@@ -43,6 +43,12 @@ function view(overrides: Partial<DutyView> = {}): DutyView {
     subscriptions: [],
     billingCycles: [],
     delegation: null,
+    delegationUsage: {
+      usedToday: 0,
+      spentTodayCents: 0,
+      usedThisMonth: 0,
+      spentThisMonthCents: 0,
+    },
     treasuryCents: 0,
     receivableCents: 0,
     payableCents: 0,

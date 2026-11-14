@@ -11,6 +11,7 @@
  * say so honestly rather than manufacture activity to look busy.
  */
 import { PUBLISHED_RATES } from "./catalogue";
+import { monthlyEquivalentCents } from "./subscription";
 import { isAutonomouslyDeliverable, planForRate } from "./plans";
 import { chooseQuote, quoteScopeLines, type QuoteChoice } from "./quote-playbook";
 import { APPROVAL_REMINDER_AGE_DAYS, approvalAgeDays, isApprovalStale } from "./approvals";
@@ -234,6 +235,13 @@ export type DutyView = {
   chainIntact: boolean;
   /** The office's own honest distance from fully unattended operation. */
   autonomyReadiness: AutonomyReadiness;
+  /** How much of the standing delegation has actually been spent, from real rows. */
+  delegationUsage: {
+    usedToday: number;
+    spentTodayCents: number;
+    usedThisMonth: number;
+    spentThisMonthCents: number;
+  };
   /** Whether a daily offline backup target is configured. */
   backupConfigured: boolean;
   /** Work the queue already knows about; the orchestrator's view of the backlog. */
@@ -291,7 +299,9 @@ export type DutyId =
   | "key_token_watch"
   | "vantage_autonomy_audit"
   | "keep_customer_health"
-  | "keep_backup";
+  | "keep_backup"
+  | "vantage_revenue_forecast"
+  | "vantage_governance_report";
 
 export const DUTY_CADENCE_MINUTES: Record<DutyId, number> = {
   vantage_liveness: 30,
@@ -334,6 +344,8 @@ export const DUTY_CADENCE_MINUTES: Record<DutyId, number> = {
   vantage_autonomy_audit: 1440,
   keep_customer_health: 10080,
   keep_backup: 1440,
+  vantage_revenue_forecast: 10080,
+  vantage_governance_report: 43200,
 };
 
 export const DUTY_OWNER: Record<DutyId, string> = {
@@ -377,6 +389,8 @@ export const DUTY_OWNER: Record<DutyId, string> = {
   vantage_autonomy_audit: "vantage",
   keep_customer_health: "keep",
   keep_backup: "keep",
+  vantage_revenue_forecast: "vantage",
+  vantage_governance_report: "vantage",
 };
 
 export const DUTY_TITLES: Record<DutyId, string> = {
@@ -420,6 +434,8 @@ export const DUTY_TITLES: Record<DutyId, string> = {
   vantage_autonomy_audit: "Audit the office's own autonomy",
   keep_customer_health: "Review customer health",
   keep_backup: "Write the daily offline backup",
+  vantage_revenue_forecast: "Forecast the month ahead",
+  vantage_governance_report: "Report on delegated authority",
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -682,6 +698,10 @@ export function planDuty(duty: DutyId, view: DutyView): PlannedWork[] {
       return planCustomerHealth(view);
     case "keep_backup":
       return planBackup(view);
+    case "vantage_revenue_forecast":
+      return planRevenueForecast(view);
+    case "vantage_governance_report":
+      return planGovernanceReport(view);
     default:
       return [];
   }
@@ -854,6 +874,98 @@ function planCustomerHealth(view: DutyView): PlannedWork[] {
       priority: 35,
       payload: { accounts, week: weekKey(view.now) },
       dedupeKey: `customer-health:${weekKey(view.now)}`,
+    },
+  ];
+}
+
+/**
+ * The weekly revenue forecast.
+ *
+ * It adds up money the office can already see — the recurring book in force, the
+ * periods already due, the open pipeline and the receivable — and files it as
+ * one internal document. It never extrapolates a trend it invented and it never
+ * quotes a customer.
+ */
+function planRevenueForecast(view: DutyView): PlannedWork[] {
+  const active = view.subscriptions.filter((entry) => entry.status === "active");
+  const due = view.billingCycles.filter(
+    (cycle) => cycle.status === "pending" || cycle.status === "invoiced",
+  );
+  const open = view.opportunities.filter(
+    (entry) => entry.stage !== "won" && entry.stage !== "lost",
+  );
+
+  if (active.length === 0 && due.length === 0 && open.length === 0) return [];
+
+  const monthlyRecurringCents = active.reduce(
+    (sum, entry) =>
+      sum +
+      monthlyEquivalentCents(entry.priceCents, entry.cycle === "quarterly" ? "quarterly" : "monthly"),
+    0,
+  );
+  const upcomingCents = due.reduce((sum, cycle) => sum + cycle.amountCents, 0);
+  const pipelineCents = open.reduce((sum, entry) => sum + entry.valueCents, 0);
+  const week = weekKey(view.now);
+
+  return [
+    {
+      agentId: "vantage",
+      kind: "forecast_revenue",
+      reason: `Weekly forecast from real records: ${active.length} active plan(s) billing, ${due.length} period(s) due, ${open.length} open opportunity(ies).`,
+      priority: 40,
+      payload: {
+        week,
+        monthlyRecurringCents,
+        upcomingCents,
+        pipelineCents,
+        receivableCents: view.receivableCents,
+        activeSubscriptions: active.length,
+        openOpportunities: open.length,
+      },
+      dedupeKey: `revenue-forecast:${week}`,
+    },
+  ];
+}
+
+/**
+ * The monthly report on delegated authority.
+ *
+ * It reports how far the standing delegation was actually used against its own
+ * caps, and what is still waiting at the founder gate. A report is a reading,
+ * never a grant: it cannot widen the envelope it describes.
+ */
+function planGovernanceReport(view: DutyView): PlannedWork[] {
+  const policy = view.delegation;
+  const usage = view.delegationUsage;
+  if (!policy && usage.usedThisMonth === 0 && view.approvalsPending.length === 0) return [];
+
+  const month = view.now.slice(0, 7);
+  return [
+    {
+      agentId: "vantage",
+      kind: "report_governance",
+      reason: `Monthly governance report for ${month}: ${usage.usedThisMonth} delegated action(s) used, ${view.approvalsPending.length} founder decision(s) waiting.`,
+      priority: 42,
+      payload: {
+        month,
+        policy: policy
+          ? {
+              label: policy.label,
+              status: policy.status,
+              maxAmountCents: policy.maxAmountCents,
+              maxActionsPerDay: policy.maxActionsPerDay,
+              maxActionsPerMonth: policy.maxActionsPerMonth,
+              allowCustomerMail: policy.allowCustomerMail,
+            }
+          : null,
+        usage,
+        approvalsPending: view.approvalsPending.length,
+        staleApprovalCount: view.staleApprovalCount,
+        chainIntact: view.chainIntact,
+        autonomyLevel: view.autonomyReadiness.level,
+        autonomyScore: view.autonomyReadiness.score,
+      },
+      dedupeKey: `governance-report:${month}`,
     },
   ];
 }

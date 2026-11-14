@@ -33,6 +33,12 @@ function view(overrides: Partial<DutyView> = {}): DutyView {
     subscriptions: [],
     billingCycles: [],
     delegation: null,
+    delegationUsage: {
+      usedToday: 0,
+      spentTodayCents: 0,
+      usedThisMonth: 0,
+      spentThisMonthCents: 0,
+    },
     tickets: [],
     ledger: [],
     documents: [],
@@ -2065,5 +2071,169 @@ describe("offline backups and customer health", () => {
       ),
       [],
     );
+  });
+});
+
+describe("deeper autonomous duties", () => {
+  it("forecasts nothing when the office has no money to read", () => {
+    assert.deepEqual(planDuty("vantage_revenue_forecast", view()), []);
+  });
+
+  it("forecasts the recurring book, due periods and open pipeline from real records", () => {
+    const work = planDuty(
+      "vantage_revenue_forecast",
+      view({
+        subscriptions: [
+          {
+            id: "s1",
+            companyName: "Delta",
+            planId: "health-watch",
+            rateId: "health-watch",
+            cycle: "monthly",
+            priceCents: 99000,
+            status: "active",
+            nextBillingAt: daysAgo(-5),
+            startedAt: daysAgo(40),
+            contactEmail: "accounts@delta.example",
+          },
+          {
+            id: "s2",
+            companyName: "Iota",
+            planId: "health-watch",
+            rateId: "health-watch",
+            cycle: "quarterly",
+            priceCents: 300000,
+            status: "active",
+            nextBillingAt: daysAgo(-5),
+            startedAt: daysAgo(40),
+            contactEmail: null,
+          },
+          {
+            id: "s3",
+            companyName: "Ended",
+            planId: "health-watch",
+            rateId: "health-watch",
+            cycle: "monthly",
+            priceCents: 500000,
+            status: "cancelled",
+            nextBillingAt: daysAgo(-5),
+            startedAt: daysAgo(40),
+            contactEmail: null,
+          },
+        ],
+        billingCycles: [
+          {
+            id: "c1",
+            subscriptionId: "s1",
+            companyName: "Delta",
+            planId: "health-watch",
+            amountCents: 99000,
+            status: "invoiced",
+            periodStart: daysAgo(30),
+            periodEnd: daysAgo(1),
+            invoiceId: "lg1",
+            documentId: null,
+            reportDocumentId: null,
+            notifiedAt: null,
+          },
+          {
+            id: "c2",
+            subscriptionId: "s2",
+            companyName: "Iota",
+            planId: "health-watch",
+            amountCents: 50000,
+            status: "fulfilled",
+            periodStart: daysAgo(30),
+            periodEnd: daysAgo(1),
+            invoiceId: "lg2",
+            documentId: "dc1",
+            reportDocumentId: "dc2",
+            notifiedAt: daysAgo(1),
+          },
+        ],
+        opportunities: [
+          {
+            id: "o1",
+            companyName: "Acme",
+            stage: "proposal",
+            valueCents: 450000,
+            summary: "Open proposal",
+            updatedAt: daysAgo(1),
+          },
+          {
+            id: "o2",
+            companyName: "Beta",
+            stage: "won",
+            valueCents: 900000,
+            summary: "Already won",
+            updatedAt: daysAgo(1),
+          },
+        ],
+        receivableCents: 120000,
+      }),
+    );
+
+    assert.equal(work.length, 1);
+    const payload = work[0]?.payload ?? {};
+    // Two active plans: R990.00 a month and R3,000.00 a quarter (R1,000.00/mo).
+    assert.equal(payload.monthlyRecurringCents, 99000 + 100000);
+    // Only the period that is invoiced and unsettled counts.
+    assert.equal(payload.upcomingCents, 99000);
+    // A won deal is not pipeline.
+    assert.equal(payload.pipelineCents, 450000);
+    assert.equal(payload.receivableCents, 120000);
+    assert.equal(payload.activeSubscriptions, 2);
+    assert.equal(payload.openOpportunities, 1);
+    assert.match(work[0]?.dedupeKey ?? "", /^revenue-forecast:/);
+  });
+
+  it("reports governance only when there is authority or a decision to report", () => {
+    assert.deepEqual(planDuty("vantage_governance_report", view()), []);
+
+    const work = planDuty(
+      "vantage_governance_report",
+      view({
+        delegationUsage: {
+          usedToday: 1,
+          spentTodayCents: 50000,
+          usedThisMonth: 3,
+          spentThisMonthCents: 150000,
+        },
+      }),
+    );
+
+    assert.equal(work.length, 1);
+    const payload = work[0]?.payload ?? {};
+    assert.equal(payload.policy, null);
+    assert.equal(payload.month, NOW.slice(0, 7));
+    assert.equal((payload.usage as { usedThisMonth: number }).usedThisMonth, 3);
+    assert.match(work[0]?.dedupeKey ?? "", /^governance-report:/);
+  });
+
+  it("quotes the standing delegation's own caps in the governance report", () => {
+    const work = planDuty(
+      "vantage_governance_report",
+      view({
+        delegation: {
+          id: "primary",
+          label: "Managed revenue",
+          status: "active",
+          maxAmountCents: 500000,
+          maxActionsPerDay: 20,
+          maxActionsPerMonth: 200,
+          allowedActions: ["issue_invoice"],
+          allowedRateIds: ["health-watch"],
+          allowCustomerMail: false,
+          allowAutoReconcile: false,
+          requireAcceptedQuote: true,
+        },
+      }),
+    );
+
+    assert.equal(work.length, 1);
+    const policy = (work[0]?.payload?.policy ?? {}) as Record<string, unknown>;
+    assert.equal(policy.label, "Managed revenue");
+    assert.equal(policy.maxActionsPerMonth, 200);
+    assert.equal(policy.maxAmountCents, 500000);
   });
 });

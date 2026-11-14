@@ -201,6 +201,23 @@ export async function readDutyView(now: string = new Date().toISOString()): Prom
     limit 1
   `;
 
+  // Delegated authority that has actually been spent, counted from real rows
+  // rather than a counter, so the governance report quotes the same figures the
+  // cap enforcement reads.
+  const usageRows = await sql<{
+    n: number;
+    cents: number;
+    month_n: number;
+    month_cents: number;
+  }>`
+    select
+      count(*) filter (where usage_day = ${now.slice(0, 10)})::int as n,
+      coalesce(sum(amount_cents) filter (where usage_day = ${now.slice(0, 10)}), 0)::int as cents,
+      count(*) filter (where usage_month = ${now.slice(0, 7)})::int as month_n,
+      coalesce(sum(amount_cents) filter (where usage_month = ${now.slice(0, 7)}), 0)::int as month_cents
+    from delegation_usage
+  `;
+
   const work = await sql<Record<string, unknown>>`
     select id, agent_id, kind, status, attempts, max_attempts, due_at, last_error
     from work_items
@@ -435,6 +452,12 @@ export async function readDutyView(now: string = new Date().toISOString()): Prom
       lastNoticeAttemptAt: row.last_notice_attempt_at ? iso(row.last_notice_attempt_at) : null,
     })),
     delegation: delegationView,
+    delegationUsage: {
+      usedToday: int(usageRows[0]?.n),
+      spentTodayCents: int(usageRows[0]?.cents),
+      usedThisMonth: int(usageRows[0]?.month_n),
+      spentThisMonthCents: int(usageRows[0]?.month_cents),
+    },
     treasuryCents: int(company.treasury_cents),
     receivableCents: int(company.receivable_cents),
     payableCents: int(company.payable_cents),

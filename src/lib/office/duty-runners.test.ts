@@ -156,6 +156,12 @@ function busyView(): DutyView {
       allowAutoReconcile: true,
       requireAcceptedQuote: false,
     },
+    delegationUsage: {
+      usedToday: 2,
+      spentTodayCents: 198000,
+      usedThisMonth: 11,
+      spentThisMonthCents: 900000,
+    },
     inbound: [
       {
         id: "in1",

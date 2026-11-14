@@ -2032,7 +2032,123 @@ const writeBackup: Runner = async (item) => {
 
 // ── Registry ──────────────────────────────────────────────────────────────────
 
+/**
+ * File the weekly revenue forecast.
+ *
+ * Every figure is read from the office's own rows: the recurring book, the open
+ * pipeline, the periods already due and the receivable on the books. Nothing is
+ * extrapolated from a trend the office invented, and nothing is sent to a
+ * customer. The forecast is an internal document the founder can open.
+ */
+const forecastRevenue: Runner = async (item) => {
+  const week = str(item.payload.week) || new Date().toISOString().slice(0, 10);
+  const monthlyRecurringCents = intOf(item.payload.monthlyRecurringCents);
+  const upcomingCents = intOf(item.payload.upcomingCents);
+  const pipelineCents = intOf(item.payload.pipelineCents);
+  const receivableCents = intOf(item.payload.receivableCents);
+  const activeSubscriptions = intOf(item.payload.activeSubscriptions);
+  const openOpportunities = intOf(item.payload.openOpportunities);
+  const body = [
+    `Revenue forecast for the week of ${week}, read from office records.`,
+    `Recurring revenue in force: ${formatZar(monthlyRecurringCents)} a month across ${activeSubscriptions} active plan(s).`,
+    `Periods already due and not yet settled: ${formatZar(upcomingCents)}.`,
+    `Open pipeline: ${formatZar(pipelineCents)} across ${openOpportunities} open opportunity(ies).`,
+    `Receivable already invoiced: ${formatZar(receivableCents)}.`,
+    "No figure here is a promise: recurring money is in force, pipeline is not, and the receivable is only collected when it is paid.",
+  ].join("\n");
+
+  const filed = await applyProposedAction(
+    "vantage",
+    {
+      kind: "draft_document",
+      title: `Revenue forecast · week of ${week}`,
+      rationale: body,
+      confidence: 0.9,
+      amountCents: 0,
+      payload: { kind: "internal" },
+    },
+    { source: "scheduler", workItem: item.id },
+  );
+
+  return {
+    outcome: `Revenue forecast filed for the week of ${week}.`,
+    executed: filed.status === "executed" ? 1 : 0,
+    escalated: filed.status === "escalated" ? 1 : 0,
+    blocked: filed.status === "blocked" ? 1 : 0,
+  };
+};
+
+/**
+ * File the monthly governance report on delegated authority.
+ *
+ * It states how much of the standing delegation was used against its own caps,
+ * how many founder decisions are waiting, and whether the audit chain verified
+ * on the tick that wrote it. It cannot grant, widen or revive authority — that
+ * stays a founder act in the office.
+ */
+const reportGovernance: Runner = async (item) => {
+  const month = str(item.payload.month) || new Date().toISOString().slice(0, 7);
+  const usage = (item.payload.usage ?? {}) as Record<string, unknown>;
+  const policy = item.payload.policy
+    ? (item.payload.policy as Record<string, unknown>)
+    : null;
+  const pending = intOf(item.payload.approvalsPending);
+  const stale = intOf(item.payload.staleApprovalCount);
+  const chainIntact = item.payload.chainIntact === true;
+  const level = str(item.payload.autonomyLevel, "unknown");
+  const score = intOf(item.payload.autonomyScore);
+
+  const usedToday = intOf(usage.usedToday);
+  const spentTodayCents = intOf(usage.spentTodayCents);
+  const usedThisMonth = intOf(usage.usedThisMonth);
+  const spentThisMonthCents = intOf(usage.spentThisMonthCents);
+
+  const lines = policy
+    ? [
+        `Standing delegation: ${str(policy.label, "untitled")} (${str(policy.status, "unknown")}).`,
+        `Cap per action: ${formatZar(intOf(policy.maxAmountCents))}.`,
+        `Used today: ${usedToday} of ${intOf(policy.maxActionsPerDay)} action(s), ${formatZar(spentTodayCents)}.`,
+        `Used this month: ${usedThisMonth} of ${intOf(policy.maxActionsPerMonth)} action(s), ${formatZar(spentThisMonthCents)}.`,
+        `Customer mail: ${policy.allowCustomerMail === true ? "allowed inside the envelope" : "not delegated"}.`,
+      ]
+    : [
+        "No standing delegation is in force, so every customer win, invoice and customer email stopped at the founder gate.",
+        `Delegated actions recorded this month: ${usedThisMonth}.`,
+      ];
+
+  const body = [
+    `Governance report for ${month}.`,
+    ...lines,
+    `Founder decisions waiting: ${pending}${stale > 0 ? ` (${stale} past the reminder threshold)` : ""}.`,
+    `Audit chain on the tick that wrote this: ${chainIntact ? "verifies" : "does not verify"}.`,
+    `Autonomy readiness at the time of writing: ${score}/100 (${level}).`,
+    "Nothing was granted, widened or decided by this report. Authority changes are the founder's alone.",
+  ].join("\n");
+
+  const filed = await applyProposedAction(
+    "vantage",
+    {
+      kind: "draft_document",
+      title: `Governance report · ${month}`,
+      rationale: body,
+      confidence: 0.94,
+      amountCents: 0,
+      payload: { kind: "internal" },
+    },
+    { source: "scheduler", workItem: item.id },
+  );
+
+  return {
+    outcome: `Governance report filed for ${month}: ${usedThisMonth} delegated action(s), ${pending} decision(s) waiting.`,
+    executed: filed.status === "executed" ? 1 : 0,
+    escalated: filed.status === "escalated" ? 1 : 0,
+    blocked: filed.status === "blocked" ? 1 : 0,
+  };
+};
+
 export const RUNNERS: Record<string, Runner> = {
+  forecast_revenue: forecastRevenue,
+  report_governance: reportGovernance,
   report_silent_agent: reportSilentAgent,
   watch_cloudflare_token: watchCloudflareToken,
   report_stuck_backlog: reportStuckBacklog,
