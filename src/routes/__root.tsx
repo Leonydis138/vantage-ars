@@ -6,6 +6,7 @@ import {
   Scripts,
   useRouterState,
 } from "@tanstack/react-router";
+import { createServerOnlyFn } from "@tanstack/react-start";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -29,7 +30,34 @@ if (typeof window === "undefined") {
 
 const APP_NAME = "Vantage-ARS";
 
+/**
+ * Server-only bridge to the in-process heartbeat. Keeping the `.server` import
+ * inside `createServerOnlyFn` satisfies TanStack's client-bundle protection;
+ * the route file itself is shared by the client and the server.
+ */
+const startOfficeHeartbeat = createServerOnlyFn(async () => {
+  const { startSelfScheduler } = await import("@/lib/office/self-scheduler.server");
+  return startSelfScheduler();
+});
+
 export const Route = createRootRoute({
+  /**
+   * The first request in a long-lived process starts the office's own
+   * heartbeat. It is idempotent and self-disabling: serverless runtimes,
+   * tests, `SELF_SCHEDULER=off` and a missing `AUTONOMY=on` all return without
+   * starting a timer. No authority is created here — the tick still asks the
+   * scheduler, which asks the governor, exactly as the cron endpoint does.
+   */
+  beforeLoad: async () => {
+    if (typeof window !== "undefined") return;
+    try {
+      await startOfficeHeartbeat();
+    } catch (error) {
+      // A heartbeat that cannot start must never take the public site down.
+      // The external cron path remains fully available.
+      console.error("[self-scheduler] could not start", error);
+    }
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },

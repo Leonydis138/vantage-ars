@@ -23,6 +23,9 @@ process.env.PGLITE_DATA_DIR = dataDir;
 delete process.env.DATABASE_URL;
 process.env.AUTONOMY = "on";
 process.env.FOUNDER_EMAIL = "founder@vantage-ars.co.za";
+// Verification drives every tick explicitly. A background timer would race the
+// deterministic clock and could add a tick between two assertions.
+process.env.SELF_SCHEDULER = "off";
 
 const checks = [];
 let failures = 0;

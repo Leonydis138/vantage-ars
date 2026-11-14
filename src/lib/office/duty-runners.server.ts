@@ -16,6 +16,7 @@ import { randomUUID } from "node:crypto";
 import { getSql } from "../db";
 import {
   applyProposedAction,
+  exportBackupJson,
   findInvoiceForReference,
   markCyclePaid,
   readDelegation,
@@ -1843,6 +1844,192 @@ const reviewSubscriptionHealth: Runner = async (item) => {
   };
 };
 
+/** Tell the founder what stands between the office and full autonomy. */
+const reportAutonomyGaps: Runner = async (item) => {
+  const gaps = (Array.isArray(item.payload.gaps) ? item.payload.gaps : []).map((raw) => {
+    const gap = (raw ?? {}) as Record<string, unknown>;
+    return {
+      code: str(gap.code, "unknown"),
+      severity: str(gap.severity, "warning"),
+      title: str(gap.title, str(gap.code, "unknown")),
+      detail: str(gap.detail),
+      action: str(gap.action),
+    };
+  });
+  const lines = gaps
+    .map(
+      (gap) =>
+        `${String(gap.severity ?? "warning")}: ${String(gap.title ?? gap.code ?? "unknown")} — ${String(gap.detail ?? "")} Next: ${String(gap.action ?? "")}`,
+    )
+    .slice(0, 20);
+  const level = str(item.payload.level, "unknown");
+  const score = intOf(item.payload.score);
+  const body = [
+    `Autonomy readiness: ${score}/100 (${level}).`,
+    ...lines,
+    "Nothing was changed automatically: a delegation, a credential or a founder decision is required to close these.",
+  ].join("\n");
+
+  const result = await applyProposedAction(
+    "vantage",
+    {
+      kind: "notify_operator",
+      title: `Autonomy readiness · ${item.payload.level ?? "review"}`,
+      rationale: body,
+      confidence: 0.96,
+      amountCents: 0,
+      payload: { gaps, level, score },
+    },
+    { source: "scheduler", workItem: item.id },
+  );
+
+  const { deliverFounderNotice } = await import("./notify.server");
+  const { founderOfficeAlertNotice } = await import("./notice");
+  await deliverFounderNotice(
+    founderOfficeAlertNotice({
+      title: `Autonomy readiness: ${score}/100`,
+      detail: body,
+      where: "/office",
+    }),
+  ).catch(() => undefined);
+
+  return {
+    outcome: `Autonomy reviewed: ${score}/100 (${level}), ${gaps.length} gap(s) reported.`,
+    executed: result.status === "executed" ? 1 : 0,
+    escalated: result.status === "escalated" ? 1 : 0,
+    blocked: result.status === "blocked" ? 1 : 0,
+  };
+};
+
+/**
+ * File the weekly customer-health review.
+ *
+ * The review is written down as an internal document and the founder is told
+ * about it. No customer is contacted, no invoice is credited, and no plan is
+ * cancelled: a health signal is a reason for a human decision, not an action.
+ */
+const reviewCustomerHealth: Runner = async (item) => {
+  const accounts = Array.isArray(item.payload.accounts)
+    ? (item.payload.accounts as { companyName?: unknown; reasons?: unknown }[])
+    : [];
+  const week = str(item.payload.week) || new Date().toISOString().slice(0, 10);
+  const lines = accounts
+    .map(
+      (account) =>
+        `- ${String(account.companyName ?? "Unknown")}: ${
+          Array.isArray(account.reasons) ? account.reasons.join("; ") : "review"
+        }`,
+    )
+    .slice(0, 20);
+  const body = [
+    `Customer health review for the week of ${week}.`,
+    accounts.length
+      ? `${accounts.length} account(s) carry a signal the office can see in its own records:`
+      : "No at-risk account was found.",
+    ...lines,
+    "No customer was contacted, credited, cancelled or promised anything. This is a review for the founder.",
+  ].join("\n");
+
+  const filed = await applyProposedAction(
+    "keep",
+    {
+      kind: "draft_document",
+      title: `Customer health review · ${week}`,
+      rationale: body,
+      confidence: 0.93,
+      amountCents: 0,
+      payload: { kind: "internal" },
+    },
+    { source: "scheduler", workItem: item.id },
+  );
+
+  if (accounts.length > 0) {
+    const { deliverFounderNotice } = await import("./notify.server");
+    const { founderOfficeAlertNotice } = await import("./notice");
+    await deliverFounderNotice(
+      founderOfficeAlertNotice({
+        title: `Customer health: ${accounts.length} account(s) need a look`,
+        detail: body,
+        where: "/office/customers",
+      }),
+    ).catch(() => undefined);
+  }
+
+  return {
+    outcome: `Customer health reviewed for ${week}: ${accounts.length} account(s).`,
+    executed: filed.status === "executed" ? 1 : 0,
+    escalated: filed.status === "escalated" ? 1 : 0,
+    blocked: filed.status === "blocked" ? 1 : 0,
+  };
+};
+
+/**
+ * Write the daily verified backup.
+ *
+ * The file is the same envelope the founder can download from `/office/audit`:
+ * a checksum over every business table. It is written to a temporary name and
+ * renamed into place, so a crash cannot leave a half-written file that looks
+ * like a backup. Only files matching our own timestamped name are pruned.
+ */
+const writeBackup: Runner = async (item) => {
+  const directory = (process.env.BACKUP_DIR ?? "").trim();
+  if (!directory) return noop("No BACKUP_DIR is configured. The office wrote no offline backup.");
+
+  const { mkdir, readdir, rename, unlink, writeFile } = await import("node:fs/promises");
+  const { join } = await import("node:path");
+  const { verifyBackup } = await import("./backup");
+  const { backupsToPrune, backupFileName } = await import("./self-scheduler");
+
+  const now = new Date();
+  const name = backupFileName(now);
+  const finalPath = join(directory, name);
+  const tempPath = join(directory, `.${name}.tmp`);
+  const json = await exportBackupJson();
+  const parsed = JSON.parse(json) as unknown;
+  const verdict = verifyBackup(parsed);
+  if (!verdict.ok) throw new Error(`The backup did not verify: ${verdict.error}`);
+
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  await writeFile(tempPath, json, { encoding: "utf8", mode: 0o600 });
+  await rename(tempPath, finalPath);
+
+  const retention = Number(process.env.BACKUP_RETENTION_DAYS ?? 14);
+  const days =
+    Number.isFinite(retention) && retention >= 1 ? Math.min(365, Math.round(retention)) : 14;
+  let pruned = 0;
+  try {
+    const names = await readdir(directory);
+    for (const old of backupsToPrune(names, now, days)) {
+      await unlink(join(directory, old));
+      pruned += 1;
+    }
+  } catch {
+    // Pruning is housekeeping. A permission problem must not invalidate the
+    // fresh backup that was already written and verified.
+  }
+
+  const bytes = Buffer.byteLength(json, "utf8");
+  const result = await applyProposedAction(
+    "keep",
+    {
+      kind: "draft_document",
+      title: `Offline backup · ${now.toISOString().slice(0, 10)}`,
+      rationale: `Verified backup written to ${name} (${(bytes / 1024).toFixed(1)} KB). ${pruned} file(s) past the ${days}-day retention window were removed. The file is stored outside the database in BACKUP_DIR.`,
+      confidence: 0.99,
+      amountCents: 0,
+      payload: { kind: "backup_manifest", file: name, bytes, pruned, retentionDays: days },
+    },
+    { source: "scheduler", workItem: item.id },
+  );
+
+  return {
+    outcome: `Backup written: ${name} (${(bytes / 1024).toFixed(1)} KB), ${pruned} old file(s) pruned.`,
+    executed: result.status === "executed" ? 1 : 0,
+    escalated: result.status === "escalated" ? 1 : 0,
+    blocked: result.status === "blocked" ? 1 : 0,
+  };
+};
+
 // ── Registry ──────────────────────────────────────────────────────────────────
 
 export const RUNNERS: Record<string, Runner> = {
@@ -1889,6 +2076,9 @@ export const RUNNERS: Record<string, Runner> = {
   send_diagnostic_checklist: sendDiagnosticChecklist,
   review_subscription_health: reviewSubscriptionHealth,
   start_subscription_cycle: startSubscriptionCycle,
+  report_autonomy_gaps: reportAutonomyGaps,
+  review_customer_health: reviewCustomerHealth,
+  write_backup: writeBackup,
 };
 
 async function sendFounderAlert(title: string, detail: string, where?: string): Promise<void> {

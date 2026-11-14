@@ -224,12 +224,12 @@ function createNeonSql(): Promise<Sql> {
  * applied — the same file lives at `migrations/0001_auth.sql` and is.
  */
 async function loadMigrationSources(): Promise<Record<string, string>> {
-  const glob = (import.meta as { glob?: unknown }).glob;
-  if (typeof glob === "function") {
-    return (glob as (pattern: string, options: Record<string, unknown>) => Record<string, string>)(
-      "/migrations/*.sql",
-      { query: "?raw", import: "default", eager: true },
-    );
+  if (typeof import.meta.glob === "function") {
+    return import.meta.glob<string>("/migrations/*.sql", {
+      query: "?raw",
+      import: "default",
+      eager: true,
+    });
   }
 
   const { readdirSync, readFileSync } = await import("node:fs");

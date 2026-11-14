@@ -12,6 +12,12 @@ import { COMPANY } from "./company";
 import type { DutyView } from "./duties";
 import { APPROVAL_REMINDER_AGE_DAYS } from "./approvals";
 import { TRACKED_PATHS } from "../site/tracked";
+import {
+  aiConfiguredFromEnv,
+  buildAutonomyReadiness,
+  mailConfiguredFromEnv,
+} from "./autonomy-readiness";
+import { SELF_SCHEDULER_LEASE_MINUTES, selfSchedulerConfig } from "./self-scheduler";
 
 const LIST_LIMIT = 120;
 
@@ -65,6 +71,7 @@ export async function readDutyView(now: string = new Date().toISOString()): Prom
     siteEvents,
     chatThreads,
     chainRows,
+    officeState,
   ] = await Promise.all([
     sql<
       Record<string, unknown>
@@ -135,6 +142,10 @@ export async function readDutyView(now: string = new Date().toISOString()): Prom
       ) chain
       order by chain.created_at asc
     `,
+    sql<Record<string, unknown>>`
+      select last_tick_at, consecutive_failures, scheduler_owner, scheduler_owner_at
+      from office_state where id = ${COMPANY.id}
+    `,
   ]);
 
   const company = companyRow[0] ?? {};
@@ -197,6 +208,65 @@ export async function readDutyView(now: string = new Date().toISOString()): Prom
     order by due_at asc
     limit 200
   `;
+
+  const delegationView = delegationRow.length
+    ? {
+        id: text(delegationRow[0].id),
+        label: text(delegationRow[0].label),
+        status: text(delegationRow[0].status),
+        maxAmountCents: int(delegationRow[0].max_amount_cents),
+        maxActionsPerDay: int(delegationRow[0].max_actions_per_day),
+        maxActionsPerMonth: int(delegationRow[0].max_actions_per_month),
+        allowedActions: parseActions(delegationRow[0].allowed_actions_json),
+        allowedRateIds: parseActions(delegationRow[0].allowed_rate_ids_json),
+        allowCustomerMail: delegationRow[0].allow_customer_mail === true,
+        allowAutoReconcile: delegationRow[0].allow_auto_reconcile === true,
+        requireAcceptedQuote: delegationRow[0].require_accepted_quote !== false,
+      }
+    : null;
+
+  const workView = work.map((row) => ({
+    id: text(row.id),
+    agentId: text(row.agent_id),
+    kind: text(row.kind),
+    status: text(row.status),
+    attempts: int(row.attempts),
+    maxAttempts: int(row.max_attempts),
+    dueAt: iso(row.due_at),
+    lastError: row.last_error ? text(row.last_error) : null,
+  }));
+
+  const selfConfig = selfSchedulerConfig(process.env);
+  const leaseAt = officeState[0]?.scheduler_owner_at
+    ? Date.parse(iso(officeState[0].scheduler_owner_at))
+    : NaN;
+  const leaseFresh =
+    Number.isFinite(leaseAt) &&
+    Date.now() - leaseAt < SELF_SCHEDULER_LEASE_MINUTES * 60_000 &&
+    Boolean(officeState[0]?.scheduler_owner);
+
+  const autonomyReadiness = buildAutonomyReadiness({
+    now,
+    autonomyOn: (process.env.AUTONOMY ?? "").trim().toLowerCase() === "on",
+    halted: company.halted === true,
+    chainIntact: chain.ok,
+    lastTickAt: officeState[0]?.last_tick_at ? iso(officeState[0].last_tick_at) : null,
+    consecutiveFailures: int(officeState[0]?.consecutive_failures),
+    selfSchedulerEnabled: selfConfig.enabled,
+    selfSchedulerRunning: leaseFresh,
+    delegation: delegationView
+      ? {
+          status: delegationView.status,
+          allowCustomerMail: delegationView.allowCustomerMail,
+        }
+      : null,
+    mailConnected: mailConfiguredFromEnv(process.env),
+    aiConfigured: aiConfiguredFromEnv(process.env),
+    backupConfigured: Boolean((process.env.BACKUP_DIR ?? "").trim()),
+    openWork: workView.filter((item) => item.status === "open" || item.status === "claimed").length,
+    abandonedWork: workView.filter((item) => item.status === "abandoned").length,
+    pendingApprovals: approvals.length,
+  });
 
   return {
     now,
@@ -364,36 +434,15 @@ export async function readDutyView(now: string = new Date().toISOString()): Prom
       notifiedAt: row.notified_at ? iso(row.notified_at) : null,
       lastNoticeAttemptAt: row.last_notice_attempt_at ? iso(row.last_notice_attempt_at) : null,
     })),
-    delegation: delegationRow.length
-      ? {
-          id: text(delegationRow[0].id),
-          label: text(delegationRow[0].label),
-          status: text(delegationRow[0].status),
-          maxAmountCents: int(delegationRow[0].max_amount_cents),
-          maxActionsPerDay: int(delegationRow[0].max_actions_per_day),
-          maxActionsPerMonth: int(delegationRow[0].max_actions_per_month),
-          allowedActions: parseActions(delegationRow[0].allowed_actions_json),
-          allowedRateIds: parseActions(delegationRow[0].allowed_rate_ids_json),
-          allowCustomerMail: delegationRow[0].allow_customer_mail === true,
-          allowAutoReconcile: delegationRow[0].allow_auto_reconcile === true,
-          requireAcceptedQuote: delegationRow[0].require_accepted_quote !== false,
-        }
-      : null,
+    delegation: delegationView,
     treasuryCents: int(company.treasury_cents),
     receivableCents: int(company.receivable_cents),
     payableCents: int(company.payable_cents),
     publishedPathCount: TRACKED_PATHS.length,
     chainIntact: chain.ok,
-    work: work.map((row) => ({
-      id: text(row.id),
-      agentId: text(row.agent_id),
-      kind: text(row.kind),
-      status: text(row.status),
-      attempts: int(row.attempts),
-      maxAttempts: int(row.max_attempts),
-      dueAt: iso(row.due_at),
-      lastError: row.last_error ? text(row.last_error) : null,
-    })),
+    autonomyReadiness,
+    backupConfigured: Boolean((process.env.BACKUP_DIR ?? "").trim()),
+    work: workView,
   };
 }
 

@@ -57,7 +57,7 @@ reconstructing it from the queue afterwards.
                  └──────┬───────┘
                         │  no
                  ┌──────▼───────────┐
-      38 duties → │      PLAN        │  pure function of the real office state
+      41 duties → │      PLAN        │  pure function of the real office state
                  └──────┬───────────┘  returns work, or nothing
                         │
                  ┌──────▼───────────┐
@@ -76,8 +76,10 @@ reconstructing it from the queue afterwards.
 
 ## The duties
 
-Thirty-eight duties, every agent has at least one, and none of them can act
-outside its owner's role.
+Forty-one duties, every agent has at least one, and none of them can act
+outside its owner's role. The most recent three are the office auditing its own
+autonomy, reviewing customer health, and writing its daily offline backup
+(below).
 
 | Agent   | Duty                          | Cadence | What it does with real records                                                                                                                                                                               |
 | ------- | ----------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -85,6 +87,7 @@ outside its owner's role.
 | VANTAGE | `vantage_backlog`             | 60m     | Reports a stuck queue and anything abandoned after retries                                                                                                                                                   |
 | VANTAGE | `vantage_briefing`            | 24h     | One factual daily summary for the founder: books, pipeline, queue, last day's activity — every figure from a record                                                                                          |
 | VANTAGE | `vantage_approval_watch`      | 168h    | Reminds the founder weekly about approvals pending for seven days; links to the approval desk and never resolves them                                                                                        |
+| VANTAGE | `vantage_autonomy_audit`      | 24h     | Scores the office's own distance from unattended work and reports every gap with the one action that closes it. Critical gaps daily, optional warnings weekly. It cannot grant itself authority. |
 | FOYER   | `foyer_intake`                | 10m     | Classifies unrouted enquiries into a lead or a service ticket                                                                                                                                                |
 | FOYER   | `foyer_stale_intake`          | 60m     | Escalates an enquiry nobody answered after four hours                                                                                                                                                        |
 | SIGNAL  | `signal_site_signals`         | 12h     | Reads real recorded page views and says what they mean                                                                                                                                                       |
@@ -115,6 +118,8 @@ outside its owner's role.
 | LEDGER  | `ledger_billing`              | 30m     | Invoices accepted work from the quoted figure under billing delegation. Diagnostic quotes wait until their linked delivery ticket is resolved; invoices and receipts are emailed only under mail delegation. |
 | KEEP    | `keep_records`                | 12h     | Reports a won deal with no quote, invoice or receipt filed                                                                                                                                                   |
 | KEEP    | `keep_subscription_review`    | 168h    | Reviews the recurring-revenue book weekly: subscriptions past their billing date, and whether the published prices still match the plans the office sells                                                    |
+| KEEP    | `keep_customer_health`        | 168h    | Reviews accounts with a health signal in the office's own records — an invoice open over a week, a plan past its billing date, a plan with no contact address, a case left unresolved. Files a document; never contacts or credits the customer. |
+| KEEP    | `keep_backup`                 | 24h     | With `BACKUP_DIR` set, writes one checksummed offline JSON backup, renames it into place atomically, records the manifest, and prunes only its own expired files. |
 | SEAL    | `seal_chain_verify`           | 12h     | **Halts the office** if the audit chain does not verify                                                                                                                                                      |
 | SEAL    | `seal_scope_audit`            | 24h     | Reports escalations that suggest an agent is unsure of its role                                                                                                                                              |
 
@@ -374,6 +379,43 @@ heartbeat. `/api/health` reports whether it is actually running:
 ```sh
 curl -s https://www.vantage-ars.co.za/api/health | jq '.scheduler, .problems'
 ```
+
+## The heartbeat inside the app
+
+The cron endpoint, the Docker sidecar, the systemd timer and the GitHub workflow
+all still work. On a long-lived process the app can also carry its own timer, so
+the office is not dependent on a second system being alive:
+
+- the first request to reach the app — an SSR page, a `/api/health` probe or a
+  cron hit — starts it, idempotently, when `AUTONOMY=on`;
+- `SELF_SCHEDULER=off` keeps the external heartbeat you already trust;
+- serverless runtimes, tests and build/bootstrap contexts never start a timer
+  and say so in the autonomy panel;
+- each beat claims a fifteen-minute lease row in `office_state`, so replicas do
+  not tick over each other, and a dead replica's lease is taken over by a
+  survivor;
+- the beat calls `runNow()` — the same path as the founder's button and the cron
+  endpoint — so halt, database health, chain verification, the circuit breaker,
+  dedupe keys, atomic claims and the governor all still apply.
+
+The timer creates no authority. It only decides when to ask.
+
+## Reading autonomy honestly
+
+`/office` shows an autonomy readiness document with one of four levels:
+
+| Level        | Meaning                                                                                 |
+| ------------ | --------------------------------------------------------------------------------------- |
+| `autonomous` | Scheduler current, authority delegated, mail and backups connected, no decision waiting. |
+| `assisted`   | It can act unattended, but named optional gaps remain (mail, AI, backup, dead work).     |
+| `gated`      | Internal work runs; customer wins, invoices and customer email still stop at the founder. |
+| `blocked`    | A halt, broken chain or integrity failure: the office is refusing to act, correctly.     |
+
+Every gap names one next action. The same document is in the founder-scope
+`/api/health` response, and VANTAGE audits it daily. Critical gaps are reported
+daily; warnings weekly. The audit can report a missing delegation or credential;
+it can never create one. That is the difference between autonomy and
+self-authorisation.
 
 ## Proving it works
 

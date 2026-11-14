@@ -15,6 +15,7 @@ import { isAutonomouslyDeliverable, planForRate } from "./plans";
 import { chooseQuote, quoteScopeLines, type QuoteChoice } from "./quote-playbook";
 import { APPROVAL_REMINDER_AGE_DAYS, approvalAgeDays, isApprovalStale } from "./approvals";
 import { diagnosticChecklistForQuote } from "./diagnostics";
+import type { AutonomyReadiness } from "./autonomy-readiness";
 
 const HOUR = 60;
 const DAY = 24 * HOUR;
@@ -231,6 +232,10 @@ export type DutyView = {
   payableCents: number;
   publishedPathCount: number;
   chainIntact: boolean;
+  /** The office's own honest distance from fully unattended operation. */
+  autonomyReadiness: AutonomyReadiness;
+  /** Whether a daily offline backup target is configured. */
+  backupConfigured: boolean;
   /** Work the queue already knows about; the orchestrator's view of the backlog. */
   work: WorkQueueView[];
 };
@@ -283,7 +288,10 @@ export type DutyId =
   | "close_quote_notice"
   | "ledger_start_subscription"
   | "keep_subscription_review"
-  | "key_token_watch";
+  | "key_token_watch"
+  | "vantage_autonomy_audit"
+  | "keep_customer_health"
+  | "keep_backup";
 
 export const DUTY_CADENCE_MINUTES: Record<DutyId, number> = {
   vantage_liveness: 30,
@@ -323,6 +331,9 @@ export const DUTY_CADENCE_MINUTES: Record<DutyId, number> = {
   ledger_start_subscription: 240,
   keep_subscription_review: 10080,
   key_token_watch: 720,
+  vantage_autonomy_audit: 1440,
+  keep_customer_health: 10080,
+  keep_backup: 1440,
 };
 
 export const DUTY_OWNER: Record<DutyId, string> = {
@@ -363,6 +374,9 @@ export const DUTY_OWNER: Record<DutyId, string> = {
   ledger_start_subscription: "ledger",
   keep_subscription_review: "keep",
   key_token_watch: "key",
+  vantage_autonomy_audit: "vantage",
+  keep_customer_health: "keep",
+  keep_backup: "keep",
 };
 
 export const DUTY_TITLES: Record<DutyId, string> = {
@@ -403,6 +417,9 @@ export const DUTY_TITLES: Record<DutyId, string> = {
   ledger_start_subscription: "Start the subscriptions that were sold",
   keep_subscription_review: "Review the recurring-revenue book",
   key_token_watch: "Check the Cloudflare token",
+  vantage_autonomy_audit: "Audit the office's own autonomy",
+  keep_customer_health: "Review customer health",
+  keep_backup: "Write the daily offline backup",
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -659,6 +676,12 @@ export function planDuty(duty: DutyId, view: DutyView): PlannedWork[] {
       return planSubscriptionReview(view);
     case "key_token_watch":
       return planTokenWatch(view);
+    case "vantage_autonomy_audit":
+      return planAutonomyAudit(view);
+    case "keep_customer_health":
+      return planCustomerHealth(view);
+    case "keep_backup":
+      return planBackup(view);
     default:
       return [];
   }
@@ -713,6 +736,146 @@ function planTokenWatch(view: DutyView): PlannedWork[] {
       priority: 20,
       payload: {},
       dedupeKey: `cf-token:${view.now.slice(0, 10)}`,
+    },
+  ];
+}
+
+/**
+ * The office audits its own autonomy once a day.
+ *
+ * This is not a health check of the process: it is an honest statement of the
+ * distance between "the duties run" and "the office can act without you". A
+ * critical gap (halt, broken chain, no delegation, a stale scheduler) is
+ * surfaced daily; a warning-only gap is surfaced weekly, so a missing optional
+ * credential never becomes a daily nag.
+ */
+function planAutonomyAudit(view: DutyView): PlannedWork[] {
+  if (!hasOfficeState(view)) return [];
+  const readiness = view.autonomyReadiness;
+  if (!readiness || readiness.gaps.length === 0) return [];
+
+  const critical = readiness.gaps.filter((gap) => gap.severity === "critical");
+  const codes = readiness.gaps
+    .map((gap) => gap.code)
+    .sort()
+    .join(",");
+  const stamp = critical.length > 0 ? view.now.slice(0, 10) : weekKey(view.now);
+  const summary = readiness.gaps
+    .map((gap) => `${gap.severity}: ${gap.title} — ${gap.detail} Next: ${gap.action}`)
+    .join("\n");
+
+  return [
+    {
+      agentId: "vantage",
+      kind: "report_autonomy_gaps",
+      reason: `Autonomy readiness is ${readiness.score}/100 (${readiness.level}). ${readiness.gaps.length} gap(s) stand between the office and unattended work.\n${summary}`,
+      priority: critical.length > 0 ? 6 : 45,
+      payload: {
+        level: readiness.level,
+        score: readiness.score,
+        gaps: readiness.gaps,
+      },
+      dedupeKey: `autonomy-gaps:${stamp}:${codes}`,
+    },
+  ];
+}
+
+/**
+ * A weekly customer-health review, from the office's own records.
+ *
+ * It names accounts where the relationship is at risk for a reason the office
+ * can see: money open too long, a recurring plan that has stopped billing, a
+ * plan with no usable contact address, or a service case left unresolved. It
+ * does not message the customer and does not close or credit anything.
+ */
+function planCustomerHealth(view: DutyView): PlannedWork[] {
+  const now = Date.parse(view.now);
+  const reasons = new Map<string, Set<string>>();
+  const note = (company: string, reason: string) => {
+    const key = company.trim();
+    if (!key) return;
+    const set = reasons.get(key) ?? new Set<string>();
+    set.add(reason);
+    reasons.set(key, set);
+  };
+
+  for (const entry of view.ledger) {
+    if (entry.kind !== "invoice" || entry.status === "paid") continue;
+    if (ageMinutes(entry.createdAt, view.now) < 7 * DAY) continue;
+    note(
+      entry.counterparty,
+      `invoice open for ${Math.floor(ageMinutes(entry.createdAt, view.now) / DAY)} days`,
+    );
+  }
+
+  for (const subscription of view.subscriptions) {
+    const next = Date.parse(subscription.nextBillingAt);
+    if (
+      subscription.status === "active" &&
+      Number.isFinite(next) &&
+      next < now - 7 * DAY * 60_000
+    ) {
+      note(
+        subscription.companyName,
+        `subscription past its billing date since ${subscription.nextBillingAt.slice(0, 10)}`,
+      );
+    }
+    if (subscription.status === "active" && !subscription.contactEmail) {
+      note(subscription.companyName, "active plan has no customer email on file");
+    }
+  }
+
+  for (const ticket of view.tickets) {
+    if (ticket.status === "resolved") continue;
+    if (ageMinutes(ticket.updatedAt, view.now) < 7 * DAY) continue;
+    const company =
+      view.opportunities.find((opp) => opp.id === ticket.relatedId)?.companyName ?? "";
+    if (!company) continue;
+    note(
+      company,
+      `service case open for ${Math.floor(ageMinutes(ticket.updatedAt, view.now) / DAY)} days`,
+    );
+  }
+
+  if (reasons.size === 0) return [];
+
+  const accounts = [...reasons.entries()]
+    .slice(0, 20)
+    .map(([companyName, set]) => ({ companyName, reasons: [...set] }));
+
+  return [
+    {
+      agentId: "keep",
+      kind: "review_customer_health",
+      reason: `${accounts.length} account(s) show a health signal the office can see in its own records: ${accounts
+        .slice(0, 5)
+        .map((account) => `${account.companyName} (${account.reasons.join("; ")})`)
+        .join(", ")}.`,
+      priority: 35,
+      payload: { accounts, week: weekKey(view.now) },
+      dedupeKey: `customer-health:${weekKey(view.now)}`,
+    },
+  ];
+}
+
+/**
+ * The daily offline backup.
+ *
+ * The office already exports a checksummed backup by hand. With `BACKUP_DIR`
+ * set it can write the same verified file itself, once a day, and prune only
+ * files it named itself. It never deletes anything else in the directory.
+ */
+function planBackup(view: DutyView): PlannedWork[] {
+  if (!view.backupConfigured) return [];
+  const date = view.now.slice(0, 10);
+  return [
+    {
+      agentId: "keep",
+      kind: "write_backup",
+      reason: "Write the daily verified offline backup and prune files past the retention window.",
+      priority: 50,
+      payload: { date },
+      dedupeKey: `backup:${date}`,
     },
   ];
 }
@@ -774,8 +937,14 @@ function planBacklog(view: DutyView): PlannedWork[] {
  * state to describe — on an empty office it says nothing, because there is
  * nothing truthful to say.
  */
-function planBriefing(view: DutyView): PlannedWork[] {
-  const hasState =
+/**
+ * Whether the office has any real business on its books. Used to keep
+ * founder-facing reviews silent on a fresh, empty office: "nothing to report"
+ * is the truth, and manufacturing a review would train the founder to ignore
+ * the ones that matter.
+ */
+function hasOfficeState(view: DutyView): boolean {
+  return (
     view.leads.length > 0 ||
     view.opportunities.length > 0 ||
     view.tickets.length > 0 ||
@@ -785,10 +954,26 @@ function planBriefing(view: DutyView): PlannedWork[] {
     view.campaigns.length > 0 ||
     view.chatThreads.length > 0 ||
     view.approvalsPending.length > 0 ||
+    view.subscriptions.length > 0 ||
+    view.billingCycles.length > 0 ||
     view.treasuryCents > 0 ||
     view.receivableCents > 0 ||
-    view.payableCents > 0;
-  if (!hasState) return [];
+    view.payableCents > 0
+  );
+}
+
+/** A stable week key (Monday-based) so weekly reviews fire once a week. */
+function weekKey(nowIso: string): string {
+  const date = new Date(nowIso);
+  const day = (date.getUTCDay() + 6) % 7;
+  const monday = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - day),
+  );
+  return monday.toISOString().slice(0, 10);
+}
+
+function planBriefing(view: DutyView): PlannedWork[] {
+  if (!hasOfficeState(view)) return [];
   const date = new Date(view.now).toISOString().slice(0, 10);
   return [
     {

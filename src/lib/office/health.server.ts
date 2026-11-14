@@ -25,6 +25,8 @@
 import { databaseHealth, getSql } from "../db";
 import { smtpStatus } from "./smtp.server";
 import { schedulerStatus } from "./scheduler.server";
+import { selfSchedulerStatus, type SelfSchedulerStatus } from "./self-scheduler.server";
+import { aiConfiguredFromEnv, buildAutonomyReadiness, type AutonomyReadiness } from "./autonomy-readiness";
 import { readDutyView } from "./office-view.server";
 import { workCounts } from "./work-queue.server";
 import { rateCardIntegrity } from "./duties";
@@ -145,6 +147,8 @@ export type OfficeHealth = {
     budget: number;
     dutiesDue: number;
     duties: number;
+    /** The server's own timer, when this deployment can carry one. */
+    selfScheduler: SelfSchedulerStatus;
   };
   queue: { open: number; claimed: number; abandoned: number; done: number };
   mail: { connected: boolean; account: string | null };
@@ -153,6 +157,8 @@ export type OfficeHealth = {
   rateCard: { ok: boolean; detail: string };
   recurringRevenue: RecurringRevenueHealth;
   delegation: DelegationHealth;
+  /** The honest distance between "running" and "fully autonomous". */
+  autonomy: AutonomyReadiness;
   problems: string[];
   full?: HealthDetail;
 };
@@ -202,6 +208,7 @@ async function overdueBillingPeriods(): Promise<number> {
 export async function officeHealth(options: { full?: boolean } = {}): Promise<OfficeHealth> {
   const checkedAt = new Date().toISOString();
   const problems: string[] = [];
+  const selfScheduler = selfSchedulerStatus();
 
   const database = await databaseHealth();
   if (!database.ok) problems.push(`Database: ${database.detail}`);
@@ -252,6 +259,7 @@ export async function officeHealth(options: { full?: boolean } = {}): Promise<Of
         budget: 0,
         dutiesDue: 0,
         duties: 0,
+        selfScheduler,
       },
       queue: { open: 0, claimed: 0, abandoned: 0, done: 0 },
       mail: { connected: false, account: null },
@@ -260,6 +268,23 @@ export async function officeHealth(options: { full?: boolean } = {}): Promise<Of
       rateCard: rateCardIntegrity(),
       recurringRevenue: NO_REVENUE,
       delegation: NO_DELEGATION,
+      autonomy: buildAutonomyReadiness({
+        now: checkedAt,
+        autonomyOn: autonomyEnabled,
+        halted: false,
+        chainIntact: false,
+        lastTickAt: null,
+        consecutiveFailures: 0,
+        selfSchedulerEnabled: selfScheduler.enabled,
+        selfSchedulerRunning: selfScheduler.running,
+        delegation: null,
+        mailConnected: false,
+        aiConfigured: aiConfiguredFromEnv(),
+        backupConfigured: Boolean(process.env.BACKUP_DIR?.trim()),
+        openWork: 0,
+        abandonedWork: 0,
+        pendingApprovals: 0,
+      }),
       problems,
     };
   }
@@ -364,6 +389,33 @@ export async function officeHealth(options: { full?: boolean } = {}): Promise<Of
     );
   }
 
+  // ── The honest autonomy picture ─────────────────────────────────────────────
+  // A readiness document, not a promise. The gaps are the concrete settings
+  // between "the duties run" and "the office can earn without the founder".
+  const autonomy = buildAutonomyReadiness({
+    now: checkedAt,
+    autonomyOn: autonomyEnabled,
+    halted: company.halted,
+    chainIntact: view.chainIntact,
+    lastTickAt: status.lastTickAt,
+    consecutiveFailures: status.consecutiveFailures,
+    selfSchedulerEnabled: selfScheduler.enabled,
+    selfSchedulerRunning: selfScheduler.running,
+    delegation: delegation.exists
+      ? {
+          status: delegation.status ?? "unknown",
+          allowCustomerMail: delegation.customerMailAllowed,
+          capExhausted: delegation.capExhausted,
+        }
+      : null,
+    mailConnected: mail.smtpConnected,
+    aiConfigured: aiConfiguredFromEnv(),
+    backupConfigured: Boolean(process.env.BACKUP_DIR?.trim()),
+    openWork: queue.open + queue.claimed,
+    abandonedWork: queue.abandoned,
+    pendingApprovals: view.approvalsPending.length,
+  });
+
   const ok = problems.every(
     (problem) => !FATAL_PREFIXES.some((prefix) => problem.startsWith(prefix)),
   );
@@ -387,6 +439,7 @@ export async function officeHealth(options: { full?: boolean } = {}): Promise<Of
       budget: status.budget,
       dutiesDue: status.dueDuties.filter((duty) => duty.dueInMinutes <= 0).length,
       duties: status.dueDuties.length,
+      selfScheduler,
     },
     queue,
     mail: { connected: mail.smtpConnected, account: mail.account },
@@ -404,6 +457,7 @@ export async function officeHealth(options: { full?: boolean } = {}): Promise<Of
     rateCard,
     recurringRevenue,
     delegation,
+    autonomy,
     problems,
   };
 

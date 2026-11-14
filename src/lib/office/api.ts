@@ -133,6 +133,13 @@ export const nudgeScheduler = createServerFn({ method: "POST" })
     waitMs: Math.max(0, Math.min(Number(input?.waitMs ?? 2_500), 10_000)),
   }))
   .handler(async ({ data }): Promise<{ kicked: boolean; reason: string }> => {
+    // Any surface that proves the process is alive may also start the process's
+    // own timer. A monitor polling `/api/health` is therefore enough to arm the
+    // in-process heartbeat after a deploy — no page visit required. The call is
+    // idempotent and refuses to start on serverless, in tests, or when
+    // `SELF_SCHEDULER=off`.
+    const { startSelfScheduler } = await import("./self-scheduler.server");
+    startSelfScheduler();
     const { kickFloorIfStale } = await import("./kick.server");
     const attempt = kickFloorIfStale()
       .then((outcome: { kicked: boolean; detail?: string; reason?: string }) =>
@@ -835,6 +842,10 @@ export const runOfficeCron = createServerFn({ method: "POST" })
         return { ok: false, reason: "AUTONOMY is not on." };
       }
       try {
+        // A genuine cron hit is also permission to arm the app's own heartbeat
+        // where the process stays alive. Serverless still refuses to start one.
+        const { startSelfScheduler } = await import("./self-scheduler.server");
+        startSelfScheduler();
         const result = await tick();
         if (!result.ok) return { ok: false, reason: result.detail };
         if (result.planned + result.ran.length > 0) {
