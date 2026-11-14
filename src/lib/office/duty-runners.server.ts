@@ -812,34 +812,25 @@ const acknowledgeTicket: Runner = async (item) => {
     "If anything changes that affects the site, tell us and we will use the updated information.",
   ].join("\n");
   const sql = await getSql();
-  const ticket = await sql<{ related_id: string | null; summary: string }>`
-    select related_id, summary from tickets where id = ${ticketId}
+  const ticket = await sql<{ id: string }>`
+    select id from tickets where id = ${ticketId}
   `.then((rows) => rows[0]);
   if (!ticket) return noop("Ticket no longer exists.");
-  const companyName = await resolveCompany(ticket.related_id);
-  const id = await fileDocument({
-    title: `Service acknowledgement · ${ticketId.slice(0, 8)}`,
-    kind: "service_ack",
-    status: "draft",
-    summary: letter,
-    relatedId: ticketId,
-  });
   const result = await applyProposedAction(
     "desk",
     {
-      kind: "update_ticket",
-      title: `Acknowledged · ${str(item.payload.title)}`,
-      rationale: `Customer acknowledgement drafted as ${id}. It has not been sent.`,
+      kind: "draft_reply",
+      title: `Service acknowledgement · ${ticketId.slice(0, 8)}`,
+      rationale: letter,
       confidence: 0.85,
       amountCents: 0,
-      companyName,
       relatedId: ticketId,
-      payload: { status: "in_progress" },
+      payload: { body: letter },
     },
     { source: "scheduler", workItem: item.id },
   );
   return {
-    outcome: `Acknowledged ${ticketId.slice(0, 8)}: ${result.status}`,
+    outcome: `Service acknowledgement drafted for ${ticketId.slice(0, 8)}: ${result.status}. It was not sent and work was not started.`,
     executed: result.status === "executed" ? 1 : 0,
     escalated: result.status === "escalated" ? 1 : 0,
     blocked: result.status === "blocked" ? 1 : 0,
@@ -901,29 +892,21 @@ const draftChatReply: Runner = async (item) => {
 const diagnoseTicket: Runner = async (item) => {
   const { technicalFix } = await import("./floor");
   const procedure = technicalFix(str(item.payload.summary));
-  const sql = await getSql();
-  const claimed = await sql<{ id: string }>`
-    update tickets
-    set status = 'in_progress', summary = ${procedure}, updated_at = now()
-    where id = ${str(item.payload.ticketId)} and status = 'open'
-    returning id
-  `;
-  if (!claimed.length) return noop("Ticket was already being worked.");
   const result = await applyProposedAction(
     "forge",
     {
-      kind: "update_ticket",
-      title: `Procedure written · ${str(item.payload.title)}`,
+      kind: "draft_document",
+      title: `Technical plan · ${str(item.payload.title)}`,
       rationale: procedure,
       confidence: 0.85,
       amountCents: 0,
       relatedId: str(item.payload.ticketId),
-      payload: { status: "in_progress" },
+      payload: { kind: "technical_plan" },
     },
     { source: "scheduler", workItem: item.id },
   );
   return {
-    outcome: `Procedure written for ${str(item.payload.ticketId).slice(0, 8)}: ${result.status}`,
+    outcome: `Technical plan drafted for ${str(item.payload.ticketId).slice(0, 8)}: ${result.status}. Founder approval is required before work starts.`,
     executed: result.status === "executed" ? 1 : 0,
     escalated: result.status === "escalated" ? 1 : 0,
     blocked: result.status === "blocked" ? 1 : 0,
@@ -936,7 +919,12 @@ const recordKnowledge: Runner = async (item) => {
     select summary, title from tickets where id = ${str(item.payload.ticketId)}
   `.then((rows) => rows[0]);
   if (!ticket) return noop("Ticket no longer exists.");
-  const body = ticket.summary
+  const procedure = await sql<{ summary: string }>`
+    select summary from documents
+    where related_id = ${str(item.payload.ticketId)} and kind = 'technical_plan'
+    order by created_at desc limit 1
+  `.then((rows) => rows[0]?.summary ?? ticket.summary);
+  const body = procedure
     .replace(/^FORGE:\s*/, "")
     .split("Customer equipment")[0]
     .trim();
@@ -1902,15 +1890,6 @@ export const RUNNERS: Record<string, Runner> = {
   review_subscription_health: reviewSubscriptionHealth,
   start_subscription_cycle: startSubscriptionCycle,
 };
-
-async function resolveCompany(relatedId: string | null): Promise<string> {
-  if (!relatedId) return "the customer";
-  const sql = await getSql();
-  const row = await sql<{ company_name: string }>`
-    select company_name from opportunities where id = ${relatedId}
-  `.then((rows) => rows[0]);
-  return row?.company_name ?? "the customer";
-}
 
 async function sendFounderAlert(title: string, detail: string, where?: string): Promise<void> {
   try {

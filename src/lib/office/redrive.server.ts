@@ -10,8 +10,7 @@
  * that the redrive and the record of the redrive cannot come apart: the item
  * goes back on the queue and the chain carries the event, or neither happens.
  */
-import { appendAudit } from "./store.server";
-import { redriveWorkById } from "./work-queue.server";
+import { redriveWorkWithAudit } from "./store.server";
 
 export type RedriveResult =
   { ok: true; kind: string; agentId: string } | { ok: false; error: string };
@@ -23,13 +22,5 @@ export type RedriveResult =
  * cleared. The chain records who did it and what was redriven.
  */
 export async function redriveAbandonedWork(workId: string): Promise<RedriveResult> {
-  const result = await redriveWorkById(workId);
-  if (!result.ok) return result;
-  await appendAudit(
-    "work_redriven",
-    "Abandoned work put back on the queue",
-    `The founder redrove a "${result.kind}" item for ${result.agentId}. Redrive is a founder action, never automatic.`,
-    "founder",
-  );
-  return result;
+  return redriveWorkWithAudit(workId);
 }

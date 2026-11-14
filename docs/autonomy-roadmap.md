@@ -1,22 +1,24 @@
 # Autonomy roadmap — verified state and the ordered increments
 
-Status as of 2026-10-24. Everything in "verified" was checked against the real
-systems on that date: the test suite ran green, the Neon database answered,
-and the production site was probed over HTTPS. Nothing here is aspirational
-wording — each claim names the check that proved it.
+Production observations below were made on 2026-10-24 and are historical, not
+re-verified in this update. Repository behavior was rechecked on 2026-10-28:
+the agent inventory contains ten agents, and the local real-office verifier
+passed 245/245 checks. That local run does not prove production credentials,
+deployment configuration, or live integrations; see
+[`runtime-inventory.md`](./runtime-inventory.md).
 
-## Verified running today
+## Repository checks and historical production evidence
 
-| System                                                                                      | Evidence                                                                                | Result                                                                                                              |
-| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Autonomy engine (nine agents, durable queue, founder gates, delegation, hash-chained audit) | `npm test` + `npm run verify:office`                                                    | 243/243 checks passed, no mocks, no sample data                                                                     |
-| Neon database                                                                               | connectivity check against the pooled host                                              | PostgreSQL 18.6 answered; `scripts/migrate.mjs` reports up to date — 16 migrations applied                          |
-| Production site                                                                             | `GET https://www.vantage-ars.co.za/` and `/api/health`                                  | both 200; health reports `state: operational`, records and decision-record integrity ok                             |
-| Cron endpoint guard                                                                         | `GET /api/cron/floor` without a bearer token                                            | 401 Unauthorized — the endpoint only acts with `CRON_SECRET`                                                        |
-| Self-nudge                                                                                  | `src/routes/api/health.ts`, `src/routes/api/site-signal.ts`                             | both call `nudgeScheduler`, so any health probe or real page view starts a catch-up tick when the last one is stale |
-| GitHub Actions heartbeat                                                                    | `.github/workflows/office-scheduler.yml`                                                | every 10 minutes, `CRON_SECRET` as a repository secret, loud errors on 401/404/500                                  |
-| Docker + systemd paths                                                                      | `docker-compose.yml` (scheduler sidecar), `deploy/systemd/` (service + 10-minute timer) | committed; no external monitor needed on those targets                                                              |
-| Cloudflare Worker (D1 + Workers AI + durable workflows, crons every 15 min)                 | `workers/vantage-ars/wrangler.toml`                                                     | config is real and account-bound; deploys via `deploy-vantage-ars.yml`                                              |
+| System                                                                                     | Evidence                                                                                | Result                                                                                                              |
+| ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Autonomy engine (ten agents, durable queue, founder gates, delegation, hash-chained audit) | `npm test` + `npm run verify:office`                                                    | 245/245 local office checks passed on 2026-10-28; production state not re-verified                                  |
+| Neon database                                                                              | connectivity check against the pooled host                                              | PostgreSQL 18.6 answered; `scripts/migrate.mjs` reports up to date — 16 migrations applied                          |
+| Production site                                                                            | `GET https://www.vantage-ars.co.za/` and `/api/health`                                  | both 200; health reports `state: operational`, records and decision-record integrity ok                             |
+| Cron endpoint guard                                                                        | `GET /api/cron/floor` without a bearer token                                            | 401 Unauthorized — the endpoint only acts with `CRON_SECRET`                                                        |
+| Self-nudge                                                                                 | `src/routes/api/health.ts`, `src/routes/api/site-signal.ts`                             | both call `nudgeScheduler`, so any health probe or real page view starts a catch-up tick when the last one is stale |
+| GitHub Actions heartbeat                                                                   | `.github/workflows/office-scheduler.yml`                                                | every 10 minutes, `CRON_SECRET` as a repository secret, loud errors on 401/404/500                                  |
+| Docker + systemd paths                                                                     | `docker-compose.yml` (scheduler sidecar), `deploy/systemd/` (service + 10-minute timer) | committed; no external monitor needed on those targets                                                              |
+| Cloudflare Worker (D1 + Workers AI + durable workflows, crons every 15 min)                | `workers/vantage-ars/wrangler.toml`                                                     | config is real and account-bound; deploys via `deploy-vantage-ars.yml`                                              |
 
 ## The increments, in order
 

@@ -1243,6 +1243,25 @@ describe("service and technical duties", () => {
       planDuty("forge_diagnose", view({ tickets: [{ ...ticket, status: "in_progress" }] })),
       [],
     );
+    assert.deepEqual(
+      planDuty(
+        "forge_diagnose",
+        view({
+          tickets: [ticket],
+          documents: [
+            {
+              id: "plan-1",
+              title: "Technical plan",
+              kind: "technical_plan",
+              status: "draft",
+              relatedId: ticket.id,
+              createdAt: NOW,
+            },
+          ],
+        }),
+      ),
+      [],
+    );
   });
 
   it("only records knowledge from resolved tickets that have a procedure", () => {
@@ -1275,6 +1294,25 @@ describe("service and technical duties", () => {
         }),
       ),
       [],
+    );
+    assert.equal(
+      planDuty(
+        "forge_knowledge",
+        view({
+          tickets: [{ ...resolved, summary: "Customer issue" }],
+          documents: [
+            {
+              id: "plan-1",
+              title: "Technical plan",
+              kind: "technical_plan",
+              status: "draft",
+              relatedId: "tk1",
+              createdAt: daysAgo(1),
+            },
+          ],
+        }),
+      ).length,
+      1,
     );
   });
 });
