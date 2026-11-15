@@ -53,8 +53,19 @@ paths:
           required: false
           schema:
             type: string
-            enum: [all, needs_review, needs_information, quote_ready, quote_sent, declined]
+            enum: [all, processing, needs_review, needs_information, quote_ready, quote_sent, reply_received, accepted, declined, not_relevant, archived]
             default: all
+        - name: escalated
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: Persisted enquiries and any generated quote proposals
@@ -64,6 +75,30 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/VantageInquiry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /vantage-ars/autonomous/run:
+    post:
+      operationId: runVantageArsAutonomousCycle
+      tags: [vantage-ars]
+      summary: Run the full autonomous operations cycle
+      responses:
+        "200":
+          description: Autonomous cycle result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  steps:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/VantageAutonomousStep"
+                required: [message, steps]
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -89,6 +124,189 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "502":
           description: A connected provider returned an error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
+  /vantage-ars/export:
+    get:
+      operationId: exportVantageArsInquiries
+      tags: [vantage-ars]
+      summary: Export filtered enquiries as CSV
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            default: all
+            enum: [all, processing, needs_review, needs_information, quote_ready, quote_sent, reply_received, accepted, declined, not_relevant, archived]
+        - name: escalated
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: CSV export
+          content:
+            text/csv:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /vantage-ars/audit-events:
+    get:
+      operationId: listVantageArsAuditEvents
+      tags: [vantage-ars]
+      summary: Read the owner action audit trail
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: Recent audit events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VantageAuditEvent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /vantage-ars/metrics:
+    get:
+      operationId: getVantageArsMetrics
+      tags: [vantage-ars]
+      summary: Read autonomous operations metrics
+      responses:
+        "200":
+          description: Autonomous performance metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageAutonomousMetrics"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /vantage-ars/automation/bank-details:
+    put:
+      operationId: setVantageArsAutomationBankDetails
+      tags: [vantage-ars]
+      summary: Configure default bank details for autonomous quote sending
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VantageAutomationBankDetailsInput"
+      responses:
+        "200":
+          description: Updated automation settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageAutomationSettings"
+        "400":
+          description: Banking information is incomplete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /vantage-ars/automation/policy:
+    put:
+      operationId: setVantageArsAutomationPolicy
+      tags: [vantage-ars]
+      summary: Configure autonomy timing and scheduling policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VantageAutonomyPolicyInput"
+      responses:
+        "200":
+          description: Updated automation settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageAutomationSettings"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /vantage-ars/automation/runs:
+    get:
+      operationId: listVantageArsAutomationRuns
+      tags: [vantage-ars]
+      summary: Read recent autonomous cycle runs
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Recent automation runs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VantageAutomationRun"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /vantage-ars/automation/policy/test-webhook:
+    post:
+      operationId: testVantageArsAutomationWebhook
+      tags: [vantage-ars]
+      summary: Send a test payload to the configured notification webhook
+      responses:
+        "200":
+          description: Test delivery result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required: [message]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "502":
+          description: Webhook delivery failed
           content:
             application/json:
               schema:
@@ -136,6 +354,35 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+  /vantage-ars/inquiries/{inquiryId}:
+    get:
+      operationId: getVantageArsInquiry
+      tags: [vantage-ars]
+      summary: Read one enquiry
+      parameters:
+        - name: inquiryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Persisted enquiry and any generated quote proposal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageInquiry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Enquiry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
   /vantage-ars/inquiries/{inquiryId}/crm-sync:
     post:
       operationId: syncVantageArsInquiryToHubSpot
@@ -167,6 +414,81 @@ paths:
                 $ref: "#/components/schemas/VantageError"
         "502":
           description: HubSpot could not confirm the contact update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
+  /vantage-ars/inquiries/{inquiryId}/accept:
+    post:
+      operationId: acceptVantageArsQuote
+      tags: [vantage-ars]
+      summary: Mark a sent quote as accepted by the customer
+      parameters:
+        - name: inquiryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Updated enquiry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageQuoteDecisionResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Enquiry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
+        "409":
+          description: Quote is not in a sent state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
+  /vantage-ars/inquiries/{inquiryId}/reprocess:
+    post:
+      operationId: reprocessVantageArsInquiry
+      tags: [vantage-ars]
+      summary: Re-run Grok triage for an enquiry
+      description: >
+        Re-reads the stored enquiry text and regenerates the AI review or quote
+        proposal. Does not send email, write to HubSpot, or change customer data.
+      parameters:
+        - name: inquiryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Reprocessing result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageReprocessResult"
+        "400":
+          description: Enquiry cannot be reprocessed from its current state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VantageError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Enquiry not found
           content:
             application/json:
               schema:
@@ -265,6 +587,12 @@ paths:
                 $ref: "#/components/schemas/VantageError"
 components:
   responses:
+    BadRequest:
+      description: The request is invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/VantageError"
     Unauthorized:
       description: Sign-in required
       content:
@@ -315,11 +643,13 @@ components:
               type: integer
             quotesReady:
               type: integer
+            replyReceived:
+              type: integer
             quotesSent:
               type: integer
             crmSyncNeeded:
               type: integer
-          required: [needsReview, needsInformation, quotesReady, quotesSent, crmSyncNeeded]
+          required: [needsReview, needsInformation, replyReceived, quotesReady, quotesSent, crmSyncNeeded]
         lastSyncAt:
           type: [string, "null"]
           format: date-time
@@ -352,7 +682,7 @@ components:
           type: string
         status:
           type: string
-          enum: [ready, sending, sent, declined, send_uncertain]
+          enum: [ready, sending, sent, accepted, declined, send_uncertain]
         currency:
           type: string
           enum: [ZAR]
@@ -394,9 +724,39 @@ components:
           type: [string, "null"]
         urgency:
           type: [string, "null"]
+        sentiment:
+          type: [string, "null"]
+        tags:
+          type: array
+          items:
+            type: string
+        language:
+          type: [string, "null"]
+        priorityScore:
+          type: integer
+        aiConfidence:
+          type: [number, "null"]
+        clarificationSentAt:
+          type: [string, "null"]
+          format: date-time
+        resolutionAttemptedAt:
+          type: [string, "null"]
+          format: date-time
+        escalatedAt:
+          type: [string, "null"]
+          format: date-time
+        followUpSentAt:
+          type: [string, "null"]
+          format: date-time
+        schedulingEmailSentAt:
+          type: [string, "null"]
+          format: date-time
+        acceptedAt:
+          type: [string, "null"]
+          format: date-time
         status:
           type: string
-          enum: [processing, needs_review, needs_information, quote_ready, quote_sent, declined, not_relevant]
+          enum: [processing, needs_review, needs_information, quote_ready, quote_sent, reply_received, accepted, declined, not_relevant, archived]
         missingInformation:
           type: array
           items:
@@ -409,13 +769,35 @@ components:
           type: [string, "null"]
         hubspotSyncStatus:
           type: string
-          enum: [not_requested, awaiting_approval, synced, needs_attention]
+          enum: [not_requested, pending, synced, needs_attention]
         quote:
           oneOf:
             - $ref: "#/components/schemas/VantageQuote"
             - type: "null"
       required:
         [id, customerName, customerEmail, subject, receivedAt, summary, category, urgency, status, missingInformation, messageBody, hasAttachments, hubspotContactId, hubspotSyncStatus, quote]
+    VantageAutonomousMetrics:
+      type: object
+      properties:
+        totalInquiries:
+          type: integer
+        escalatedInquiries:
+          type: integer
+        resolvedInquiries:
+          type: integer
+        solutionPatterns:
+          type: integer
+        autonomousActions:
+          type: integer
+        acceptedInquiries:
+          type: integer
+        customerReplies:
+          type: integer
+        quotedValue:
+          type: number
+        acceptedValue:
+          type: number
+      required: [totalInquiries, escalatedInquiries, resolvedInquiries, solutionPatterns, autonomousActions, acceptedInquiries, customerReplies, quotedValue, acceptedValue]
     VantageSyncResult:
       type: object
       properties:
@@ -429,17 +811,27 @@ components:
           type: integer
         awaitingGrok:
           type: integer
+        repliesLinked:
+          type: integer
+        autoAccepted:
+          type: integer
+        autoDeclined:
+          type: integer
         inquiries:
           type: array
           items:
             $ref: "#/components/schemas/VantageInquiry"
         message:
           type: string
-      required: [scanned, imported, alreadySeen, processed, awaitingGrok, inquiries, message]
+      required: [scanned, imported, alreadySeen, processed, awaitingGrok, repliesLinked, autoAccepted, autoDeclined, inquiries, message]
     VantageAutomationSettings:
       type: object
       properties:
         enabled:
+          type: boolean
+        pausedByOwner:
+          type: boolean
+        autonomousSendingEnabled:
           type: boolean
         intervalMinutes:
           type: integer
@@ -447,9 +839,83 @@ components:
           type: string
         providerReady:
           type: boolean
+        bankDetailsConfigured:
+          type: boolean
+        schedulingUrl:
+          type: string
+        notificationWebhookUrl:
+          type: string
+        notificationWebhookSecretConfigured:
+          type: boolean
+        slaHours:
+          type: integer
+        followUpDays:
+          type: integer
+        archiveDays:
+          type: integer
+        lastCycleSteps:
+          type: array
+          items:
+            $ref: "#/components/schemas/VantageAutonomousStep"
         lastRunAt:
           type: [string, "null"]
-      required: [enabled, intervalMinutes, matchingQuery, providerReady, lastRunAt]
+      required: [enabled, pausedByOwner, autonomousSendingEnabled, intervalMinutes, matchingQuery, providerReady, bankDetailsConfigured, schedulingUrl, notificationWebhookUrl, notificationWebhookSecretConfigured, slaHours, followUpDays, archiveDays, lastCycleSteps, lastRunAt]
+    VantageAutomationRun:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [completed, failed]
+        message:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/VantageAutonomousStep"
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+      required: [id, status, message, steps, startedAt, completedAt]
+    VantageAutonomousStep:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        message:
+          type: string
+      required: [key, label, message]
+    VantageAutonomyPolicyInput:
+      type: object
+      properties:
+        schedulingUrl:
+          type: string
+        notificationWebhookUrl:
+          type: string
+        notificationWebhookSecret:
+          type: string
+        clearWebhookSecret:
+          type: boolean
+        slaHours:
+          type: integer
+          minimum: 1
+          maximum: 168
+        followUpDays:
+          type: integer
+          minimum: 1
+          maximum: 90
+        archiveDays:
+          type: integer
+          minimum: 7
+          maximum: 365
+      required: [slaHours, followUpDays, archiveDays]
     VantageAutomationInput:
       type: object
       properties:
@@ -524,6 +990,42 @@ components:
         message:
           type: string
       required: [inquiry, message]
+    VantageReprocessResult:
+      type: object
+      properties:
+        inquiry:
+          $ref: "#/components/schemas/VantageInquiry"
+        message:
+          type: string
+      required: [inquiry, message]
+    VantageAuditEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        inquiryId:
+          type: [string, "null"]
+          format: uuid
+        ownerUserId:
+          type: string
+        eventType:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, ownerUserId, eventType, details, createdAt]
+    VantageAutomationBankDetailsInput:
+      type: object
+      properties:
+        bankDetails:
+          $ref: "#/components/schemas/VantageBankDetails"
+        autonomousSendingEnabled:
+          type: boolean
+      required: [bankDetails]
     VantageError:
       type: object
       properties:

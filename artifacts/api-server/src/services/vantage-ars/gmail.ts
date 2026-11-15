@@ -240,6 +240,57 @@ export async function sendQuoteReply(input: {
   );
 }
 
+export async function sendPlainReply(input: {
+  customerEmail: string;
+  originalSubject: string;
+  originalThreadId: string;
+  originalMessageId: string | null;
+  plainTextBody: string;
+}) {
+  const subject = /^re:/i.test(input.originalSubject)
+    ? input.originalSubject
+    : `Re: ${input.originalSubject}`;
+  const raw = encodeMimeMessage({
+    to: input.customerEmail,
+    subject,
+    body: input.plainTextBody,
+    originalMessageId: input.originalMessageId,
+  });
+
+  return providerJson<{ id: string; threadId: string }>(
+    "google-mail",
+    "/gmail/v1/users/me/messages/send",
+    {
+      method: "POST",
+      body: {
+        threadId: input.originalThreadId,
+        raw,
+      },
+    },
+  );
+}
+
+export async function sendStandaloneEmail(input: {
+  to: string;
+  subject: string;
+  plainTextBody: string;
+}) {
+  const raw = encodeMimeMessage({
+    to: input.to,
+    subject: input.subject,
+    body: input.plainTextBody,
+    originalMessageId: null,
+  });
+  return providerJson<{ id: string; threadId: string }>(
+    "google-mail",
+    "/gmail/v1/users/me/messages/send",
+    {
+      method: "POST",
+      body: { raw },
+    },
+  );
+}
+
 export async function findSentQuoteMessage(input: {
   customerEmail: string;
   quoteReference: string;

@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { DashboardPage } from "@/pages/dashboard";
 import { InboxPage } from "@/pages/inbox";
 import { InquiryPage } from "@/pages/inquiry";
+import { AuditPage } from "@/pages/audit";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -123,22 +124,22 @@ function PublicHome() {
       </div>
       <section className="landing-hero">
         <div className="eyebrow"><span className="pulse-dot" /> OWNER CONTROL SYSTEM</div>
-        <h1>Technical operations.<br /><em>Under your control.</em></h1>
+        <h1>Technical operations.<br /><em>Running themselves.</em></h1>
         <p>
-          Grok reviews real customer enquiries, prepares quote proposals, and
-          keeps your operations organized. You stay in control of every message,
-          customer record, and business decision.
+          Grok runs your enquiry operations end to end: triage, quotes, customer
+          clarification, issue resolution, CRM sync, follow-ups, and owner
+          reporting. You keep a live override over every autonomous action.
         </p>
         <div className="landing-actions">
           <a className="button button-primary" href={`${basePath}/sign-in`}>Open operations <ArrowIcon /></a>
           <a className="text-link" href="https://vantage-ars.co.za" target="_blank" rel="noreferrer">Visit Vantage ARS ↗</a>
         </div>
-        <div className="landing-note"><ShieldIcon /> Real inbox data. No demo records. External actions require owner approval.</div>
+        <div className="landing-note"><ShieldIcon /> Real inbox data. No demo records. Autonomous actions are audited and owner-overridable.</div>
       </section>
       <section className="landing-grid">
         <article><span className="step-number">01</span><h2>Monitor</h2><p>Connect live business services and see what needs attention.</p></article>
         <article><span className="step-number">02</span><h2>Prepare</h2><p>Grok triages customer email and drafts quotes from published rates.</p></article>
-        <article><span className="step-number">03</span><h2>Approve</h2><p>Review the exact action before any email is sent or CRM record is created.</p></article>
+        <article><span className="step-number">03</span><h2>Override</h2><p>Pause, reprocess, or intervene at any point while the worker keeps running.</p></article>
       </section>
       <footer className="landing-footer"><span>VANTAGE ARS · COGNITIVE OPERATIONS</span><span>Secure owner access · South Africa</span></footer>
     </main>
@@ -174,6 +175,9 @@ function Routed() {
         </Route>
         <Route path="/inbox">
           <Protected><AppShell section="inbox"><InboxPage /></AppShell></Protected>
+        </Route>
+        <Route path="/audit">
+          <Protected><AppShell section="overview"><AuditPage /></AppShell></Protected>
         </Route>
         <Route path="/inquiries/:inquiryId">
           {(params) => <Protected><AppShell section="inbox"><InquiryPage inquiryId={params.inquiryId} /></AppShell></Protected>}

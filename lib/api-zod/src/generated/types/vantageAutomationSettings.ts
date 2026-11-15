@@ -5,12 +5,23 @@
  * Vantage ARS operations and approval API
  * OpenAPI spec version: 0.1.0
  */
+import type { VantageAutonomousStep } from './vantageAutonomousStep';
 
 export interface VantageAutomationSettings {
   enabled: boolean;
+  pausedByOwner: boolean;
+  autonomousSendingEnabled: boolean;
   intervalMinutes: number;
   matchingQuery: string;
   providerReady: boolean;
+  bankDetailsConfigured: boolean;
+  schedulingUrl: string;
+  notificationWebhookUrl: string;
+  notificationWebhookSecretConfigured: boolean;
+  slaHours: number;
+  followUpDays: number;
+  archiveDays: number;
+  lastCycleSteps: VantageAutonomousStep[];
   /** @nullable */
   lastRunAt: string | null;
 }

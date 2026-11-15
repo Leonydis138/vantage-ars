@@ -202,6 +202,7 @@ a { color: inherit; text-decoration: none; }
 .inquiry-status { width: fit-content; color: #a0b1be; font-size: 9px; white-space: nowrap; }
 .status-text-quote_ready { color: #78dbe3; }
 .status-text-quote_sent { color: #78d0b5; }
+.status-text-reply_received { color: #e6bf7f; }
 .status-text-needs_review, .status-text-needs_information { color: #dfbd7c; }
 .inquiry-amount { color: #b9dbe0; font-size: 10px; font-weight: 600; white-space: nowrap; }
 .inquiry-row time { color: #748a99; font-size: 9px; text-align: right; white-space: nowrap; }
@@ -372,3 +373,24 @@ a { color: inherit; text-decoration: none; }
   .page-error { align-items: flex-start; flex-wrap: wrap; }
   .page-error > div { flex-basis: calc(100% - 50px); }
 }
+
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 13px; }
+.tag-chip { padding: 3px 8px; border: 1px solid rgba(124,224,232,.16); border-radius: 999px; background: rgba(124,224,232,.06); color: #8fdde4; font-size: 8px; letter-spacing: .04em; text-transform: uppercase; }
+.autonomy-timeline { display: grid; gap: 12px; margin-top: 14px; }
+.autonomy-timeline-item { position: relative; display: flex; gap: 10px; align-items: flex-start; padding-left: 2px; }
+.timeline-dot { width: 7px; height: 7px; margin-top: 4px; flex: 0 0 auto; border-radius: 50%; background: #55d8e8; box-shadow: 0 0 0 3px rgba(85,216,232,.1); }
+.autonomy-timeline-item div { display: grid; gap: 3px; }
+.autonomy-timeline-item b { color: #cfe0e9; font-size: 9px; font-weight: 550; }
+.autonomy-timeline-item small { color: #7d93a2; font-size: 8px; }
+
+.audit-search { display: flex; align-items: center; gap: 7px; margin-left: auto; }
+.audit-search .field-input { max-width: 220px; }
+.audit-row { border-top: 1px solid rgba(156,185,207,.075); }
+.audit-row-main { width: 100%; border-top: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; font: inherit; }
+.audit-row-main:hover { background: rgba(124,224,232,.025); }
+.audit-details { padding: 0 14px 14px 19px; }
+.audit-details-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; color: #7d93a2; font-size: 8px; letter-spacing: .12em; }
+.audit-details-head a { display: inline-flex; align-items: center; gap: 4px; color: #7ce0e8; font-size: 8px; text-decoration: none; }
+.audit-details pre { margin: 0; padding: 12px; overflow-x: auto; border: 1px solid rgba(156,185,207,.09); border-radius: 7px; background: rgba(4,13,22,.45); color: #a9c0cf; font-size: 9px; line-height: 1.7; }
+
+.run-duration { color: #7d93a2; font-size: 9px; text-align: right; white-space: nowrap; }

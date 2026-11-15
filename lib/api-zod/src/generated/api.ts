@@ -31,6 +31,7 @@ export const GetVantageArsDashboardResponse = zod.object({
   "needsReview": zod.number().int(),
   "needsInformation": zod.number().int(),
   "quotesReady": zod.number().int(),
+  "replyReceived": zod.number().int(),
   "quotesSent": zod.number().int(),
   "crmSyncNeeded": zod.number().int()
 }),
@@ -43,9 +44,12 @@ export const GetVantageArsDashboardResponse = zod.object({
  * @summary List real enquiries imported from Gmail
  */
 export const listVantageArsInquiriesQueryStatusDefault = `all`;
+export const listVantageArsInquiriesQueryEscalatedDefault = false;
 
 export const ListVantageArsInquiriesQueryParams = zod.object({
-  "status": zod.enum(['all', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'declined']).default(listVantageArsInquiriesQueryStatusDefault)
+  "status": zod.enum(['all', 'processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'reply_received', 'accepted', 'declined', 'not_relevant', 'archived']).default(listVantageArsInquiriesQueryStatusDefault),
+  "escalated": zod.coerce.boolean().default(listVantageArsInquiriesQueryEscalatedDefault),
+  "search": zod.coerce.string().optional()
 })
 
 export const ListVantageArsInquiriesResponseItem = zod.object({
@@ -57,16 +61,27 @@ export const ListVantageArsInquiriesResponseItem = zod.object({
   "summary": zod.string().nullable(),
   "category": zod.string().nullable(),
   "urgency": zod.string().nullable(),
-  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'declined', 'not_relevant']),
+  "sentiment": zod.string().nullish(),
+  "tags": zod.array(zod.string()).optional(),
+  "language": zod.string().nullish(),
+  "priorityScore": zod.number().int().optional(),
+  "aiConfidence": zod.number().nullish(),
+  "clarificationSentAt": zod.coerce.date().nullish(),
+  "resolutionAttemptedAt": zod.coerce.date().nullish(),
+  "escalatedAt": zod.coerce.date().nullish(),
+  "followUpSentAt": zod.coerce.date().nullish(),
+  "schedulingEmailSentAt": zod.coerce.date().nullish(),
+  "acceptedAt": zod.coerce.date().nullish(),
+  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'reply_received', 'accepted', 'declined', 'not_relevant', 'archived']),
   "missingInformation": zod.array(zod.string()),
   "messageBody": zod.string(),
   "hasAttachments": zod.boolean(),
   "hubspotContactId": zod.string().nullable(),
-  "hubspotSyncStatus": zod.enum(['not_requested', 'awaiting_approval', 'synced', 'needs_attention']),
+  "hubspotSyncStatus": zod.enum(['not_requested', 'pending', 'synced', 'needs_attention']),
   "quote": zod.union([zod.object({
   "id": zod.string().uuid(),
   "reference": zod.string(),
-  "status": zod.enum(['ready', 'sending', 'sent', 'declined', 'send_uncertain']),
+  "status": zod.enum(['ready', 'sending', 'sent', 'accepted', 'declined', 'send_uncertain']),
   "currency": zod.enum(['ZAR']),
   "lines": zod.array(zod.object({
   "code": zod.string(),
@@ -86,6 +101,19 @@ export const ListVantageArsInquiriesResponse = zod.array(ListVantageArsInquiries
 
 
 /**
+ * @summary Run the full autonomous operations cycle
+ */
+export const RunVantageArsAutonomousCycleResponse = zod.object({
+  "message": zod.string(),
+  "steps": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "message": zod.string()
+}))
+})
+
+
+/**
  * Imports only matching inbox messages. It never sends email, creates a Gmail draft, or publishes content.
  * @summary Read matching live Gmail messages and process them with Grok
  */
@@ -95,6 +123,9 @@ export const SyncVantageArsInquiriesResponse = zod.object({
   "alreadySeen": zod.number().int(),
   "processed": zod.number().int(),
   "awaitingGrok": zod.number().int(),
+  "repliesLinked": zod.number().int(),
+  "autoAccepted": zod.number().int(),
+  "autoDeclined": zod.number().int(),
   "inquiries": zod.array(zod.object({
   "id": zod.string().uuid(),
   "customerName": zod.string(),
@@ -104,16 +135,27 @@ export const SyncVantageArsInquiriesResponse = zod.object({
   "summary": zod.string().nullable(),
   "category": zod.string().nullable(),
   "urgency": zod.string().nullable(),
-  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'declined', 'not_relevant']),
+  "sentiment": zod.string().nullish(),
+  "tags": zod.array(zod.string()).optional(),
+  "language": zod.string().nullish(),
+  "priorityScore": zod.number().int().optional(),
+  "aiConfidence": zod.number().nullish(),
+  "clarificationSentAt": zod.coerce.date().nullish(),
+  "resolutionAttemptedAt": zod.coerce.date().nullish(),
+  "escalatedAt": zod.coerce.date().nullish(),
+  "followUpSentAt": zod.coerce.date().nullish(),
+  "schedulingEmailSentAt": zod.coerce.date().nullish(),
+  "acceptedAt": zod.coerce.date().nullish(),
+  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'reply_received', 'accepted', 'declined', 'not_relevant', 'archived']),
   "missingInformation": zod.array(zod.string()),
   "messageBody": zod.string(),
   "hasAttachments": zod.boolean(),
   "hubspotContactId": zod.string().nullable(),
-  "hubspotSyncStatus": zod.enum(['not_requested', 'awaiting_approval', 'synced', 'needs_attention']),
+  "hubspotSyncStatus": zod.enum(['not_requested', 'pending', 'synced', 'needs_attention']),
   "quote": zod.union([zod.object({
   "id": zod.string().uuid(),
   "reference": zod.string(),
-  "status": zod.enum(['ready', 'sending', 'sent', 'declined', 'send_uncertain']),
+  "status": zod.enum(['ready', 'sending', 'sent', 'accepted', 'declined', 'send_uncertain']),
   "currency": zod.enum(['ZAR']),
   "lines": zod.array(zod.object({
   "code": zod.string(),
@@ -134,13 +176,201 @@ export const SyncVantageArsInquiriesResponse = zod.object({
 
 
 /**
+ * @summary Export filtered enquiries as CSV
+ */
+export const exportVantageArsInquiriesQueryStatusDefault = `all`;
+export const exportVantageArsInquiriesQueryEscalatedDefault = false;
+
+export const ExportVantageArsInquiriesQueryParams = zod.object({
+  "status": zod.enum(['all', 'processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'reply_received', 'accepted', 'declined', 'not_relevant', 'archived']).default(exportVantageArsInquiriesQueryStatusDefault),
+  "escalated": zod.coerce.boolean().default(exportVantageArsInquiriesQueryEscalatedDefault),
+  "search": zod.coerce.string().optional()
+})
+
+export const ExportVantageArsInquiriesResponse = zod.unknown()
+
+
+/**
+ * @summary Read the owner action audit trail
+ */
+export const listVantageArsAuditEventsQueryLimitDefault = 100;
+
+export const ListVantageArsAuditEventsQueryParams = zod.object({
+  "limit": zod.coerce.number().int().default(listVantageArsAuditEventsQueryLimitDefault)
+})
+
+export const ListVantageArsAuditEventsResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "inquiryId": zod.string().uuid().nullish(),
+  "ownerUserId": zod.string(),
+  "eventType": zod.string(),
+  "details": zod.record(zod.string(), zod.unknown()),
+  "createdAt": zod.coerce.date()
+})
+export const ListVantageArsAuditEventsResponse = zod.array(ListVantageArsAuditEventsResponseItem)
+
+
+/**
+ * @summary Read autonomous operations metrics
+ */
+export const GetVantageArsMetricsResponse = zod.object({
+  "totalInquiries": zod.number().int(),
+  "escalatedInquiries": zod.number().int(),
+  "resolvedInquiries": zod.number().int(),
+  "solutionPatterns": zod.number().int(),
+  "autonomousActions": zod.number().int(),
+  "acceptedInquiries": zod.number().int(),
+  "customerReplies": zod.number().int(),
+  "quotedValue": zod.number(),
+  "acceptedValue": zod.number()
+})
+
+
+/**
+ * @summary Configure default bank details for autonomous quote sending
+ */
+
+
+export const setVantageArsAutomationBankDetailsBodyBankDetailsAccountNumberMin = 3;
+
+export const setVantageArsAutomationBankDetailsBodyBankDetailsBranchCodeMin = 3;
+
+
+
+
+export const SetVantageArsAutomationBankDetailsBody = zod.object({
+  "bankDetails": zod.object({
+  "accountName": zod.string().min(1),
+  "bankName": zod.string().min(1),
+  "accountNumber": zod.string().min(setVantageArsAutomationBankDetailsBodyBankDetailsAccountNumberMin),
+  "branchCode": zod.string().min(setVantageArsAutomationBankDetailsBodyBankDetailsBranchCodeMin),
+  "accountType": zod.string().min(1)
+}),
+  "autonomousSendingEnabled": zod.boolean().optional()
+})
+
+export const SetVantageArsAutomationBankDetailsResponse = zod.object({
+  "enabled": zod.boolean(),
+  "pausedByOwner": zod.boolean(),
+  "autonomousSendingEnabled": zod.boolean(),
+  "intervalMinutes": zod.number().int(),
+  "matchingQuery": zod.string(),
+  "providerReady": zod.boolean(),
+  "bankDetailsConfigured": zod.boolean(),
+  "schedulingUrl": zod.string(),
+  "notificationWebhookUrl": zod.string(),
+  "notificationWebhookSecretConfigured": zod.boolean(),
+  "slaHours": zod.number().int(),
+  "followUpDays": zod.number().int(),
+  "archiveDays": zod.number().int(),
+  "lastCycleSteps": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "message": zod.string()
+})),
+  "lastRunAt": zod.string().nullable()
+})
+
+
+/**
+ * @summary Configure autonomy timing and scheduling policy
+ */
+export const setVantageArsAutomationPolicyBodySlaHoursMax = 168;
+
+export const setVantageArsAutomationPolicyBodyFollowUpDaysMax = 90;
+
+export const setVantageArsAutomationPolicyBodyArchiveDaysMin = 7;
+export const setVantageArsAutomationPolicyBodyArchiveDaysMax = 365;
+
+
+
+export const SetVantageArsAutomationPolicyBody = zod.object({
+  "schedulingUrl": zod.string().optional(),
+  "notificationWebhookUrl": zod.string().optional(),
+  "notificationWebhookSecret": zod.string().optional(),
+  "clearWebhookSecret": zod.boolean().optional(),
+  "slaHours": zod.number().int().min(1).max(setVantageArsAutomationPolicyBodySlaHoursMax),
+  "followUpDays": zod.number().int().min(1).max(setVantageArsAutomationPolicyBodyFollowUpDaysMax),
+  "archiveDays": zod.number().int().min(setVantageArsAutomationPolicyBodyArchiveDaysMin).max(setVantageArsAutomationPolicyBodyArchiveDaysMax)
+})
+
+export const SetVantageArsAutomationPolicyResponse = zod.object({
+  "enabled": zod.boolean(),
+  "pausedByOwner": zod.boolean(),
+  "autonomousSendingEnabled": zod.boolean(),
+  "intervalMinutes": zod.number().int(),
+  "matchingQuery": zod.string(),
+  "providerReady": zod.boolean(),
+  "bankDetailsConfigured": zod.boolean(),
+  "schedulingUrl": zod.string(),
+  "notificationWebhookUrl": zod.string(),
+  "notificationWebhookSecretConfigured": zod.boolean(),
+  "slaHours": zod.number().int(),
+  "followUpDays": zod.number().int(),
+  "archiveDays": zod.number().int(),
+  "lastCycleSteps": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "message": zod.string()
+})),
+  "lastRunAt": zod.string().nullable()
+})
+
+
+/**
+ * @summary Read recent autonomous cycle runs
+ */
+export const listVantageArsAutomationRunsQueryLimitDefault = 20;
+
+export const ListVantageArsAutomationRunsQueryParams = zod.object({
+  "limit": zod.coerce.number().int().default(listVantageArsAutomationRunsQueryLimitDefault)
+})
+
+export const ListVantageArsAutomationRunsResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "status": zod.enum(['completed', 'failed']),
+  "message": zod.string(),
+  "steps": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "message": zod.string()
+})),
+  "startedAt": zod.coerce.date(),
+  "completedAt": zod.coerce.date()
+})
+export const ListVantageArsAutomationRunsResponse = zod.array(ListVantageArsAutomationRunsResponseItem)
+
+
+/**
+ * @summary Send a test payload to the configured notification webhook
+ */
+export const TestVantageArsAutomationWebhookResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
  * @summary Read automated inbox processing settings
  */
 export const GetVantageArsAutomationResponse = zod.object({
   "enabled": zod.boolean(),
+  "pausedByOwner": zod.boolean(),
+  "autonomousSendingEnabled": zod.boolean(),
   "intervalMinutes": zod.number().int(),
   "matchingQuery": zod.string(),
   "providerReady": zod.boolean(),
+  "bankDetailsConfigured": zod.boolean(),
+  "schedulingUrl": zod.string(),
+  "notificationWebhookUrl": zod.string(),
+  "notificationWebhookSecretConfigured": zod.boolean(),
+  "slaHours": zod.number().int(),
+  "followUpDays": zod.number().int(),
+  "archiveDays": zod.number().int(),
+  "lastCycleSteps": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "message": zod.string()
+})),
   "lastRunAt": zod.string().nullable()
 })
 
@@ -154,10 +384,78 @@ export const SetVantageArsAutomationBody = zod.object({
 
 export const SetVantageArsAutomationResponse = zod.object({
   "enabled": zod.boolean(),
+  "pausedByOwner": zod.boolean(),
+  "autonomousSendingEnabled": zod.boolean(),
   "intervalMinutes": zod.number().int(),
   "matchingQuery": zod.string(),
   "providerReady": zod.boolean(),
+  "bankDetailsConfigured": zod.boolean(),
+  "schedulingUrl": zod.string(),
+  "notificationWebhookUrl": zod.string(),
+  "notificationWebhookSecretConfigured": zod.boolean(),
+  "slaHours": zod.number().int(),
+  "followUpDays": zod.number().int(),
+  "archiveDays": zod.number().int(),
+  "lastCycleSteps": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "message": zod.string()
+})),
   "lastRunAt": zod.string().nullable()
+})
+
+
+/**
+ * @summary Read one enquiry
+ */
+export const GetVantageArsInquiryParams = zod.object({
+  "inquiryId": zod.coerce.string().uuid()
+})
+
+export const GetVantageArsInquiryResponse = zod.object({
+  "id": zod.string().uuid(),
+  "customerName": zod.string(),
+  "customerEmail": zod.string().email(),
+  "subject": zod.string(),
+  "receivedAt": zod.coerce.date(),
+  "summary": zod.string().nullable(),
+  "category": zod.string().nullable(),
+  "urgency": zod.string().nullable(),
+  "sentiment": zod.string().nullish(),
+  "tags": zod.array(zod.string()).optional(),
+  "language": zod.string().nullish(),
+  "priorityScore": zod.number().int().optional(),
+  "aiConfidence": zod.number().nullish(),
+  "clarificationSentAt": zod.coerce.date().nullish(),
+  "resolutionAttemptedAt": zod.coerce.date().nullish(),
+  "escalatedAt": zod.coerce.date().nullish(),
+  "followUpSentAt": zod.coerce.date().nullish(),
+  "schedulingEmailSentAt": zod.coerce.date().nullish(),
+  "acceptedAt": zod.coerce.date().nullish(),
+  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'reply_received', 'accepted', 'declined', 'not_relevant', 'archived']),
+  "missingInformation": zod.array(zod.string()),
+  "messageBody": zod.string(),
+  "hasAttachments": zod.boolean(),
+  "hubspotContactId": zod.string().nullable(),
+  "hubspotSyncStatus": zod.enum(['not_requested', 'pending', 'synced', 'needs_attention']),
+  "quote": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "reference": zod.string(),
+  "status": zod.enum(['ready', 'sending', 'sent', 'accepted', 'declined', 'send_uncertain']),
+  "currency": zod.enum(['ZAR']),
+  "lines": zod.array(zod.object({
+  "code": zod.string(),
+  "description": zod.string(),
+  "quantity": zod.number(),
+  "unit": zod.string(),
+  "unitPrice": zod.number(),
+  "total": zod.number()
+})),
+  "subtotal": zod.number(),
+  "notes": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "sentAt": zod.string().nullable()
+}),zod.null()])
 })
 
 
@@ -171,6 +469,121 @@ export const SyncVantageArsInquiryToHubSpotParams = zod.object({
 export const SyncVantageArsInquiryToHubSpotResponse = zod.object({
   "status": zod.enum(['synced', 'needs_attention']),
   "contactId": zod.string().nullable(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Mark a sent quote as accepted by the customer
+ */
+export const AcceptVantageArsQuoteParams = zod.object({
+  "inquiryId": zod.coerce.string().uuid()
+})
+
+export const AcceptVantageArsQuoteResponse = zod.object({
+  "inquiry": zod.object({
+  "id": zod.string().uuid(),
+  "customerName": zod.string(),
+  "customerEmail": zod.string().email(),
+  "subject": zod.string(),
+  "receivedAt": zod.coerce.date(),
+  "summary": zod.string().nullable(),
+  "category": zod.string().nullable(),
+  "urgency": zod.string().nullable(),
+  "sentiment": zod.string().nullish(),
+  "tags": zod.array(zod.string()).optional(),
+  "language": zod.string().nullish(),
+  "priorityScore": zod.number().int().optional(),
+  "aiConfidence": zod.number().nullish(),
+  "clarificationSentAt": zod.coerce.date().nullish(),
+  "resolutionAttemptedAt": zod.coerce.date().nullish(),
+  "escalatedAt": zod.coerce.date().nullish(),
+  "followUpSentAt": zod.coerce.date().nullish(),
+  "schedulingEmailSentAt": zod.coerce.date().nullish(),
+  "acceptedAt": zod.coerce.date().nullish(),
+  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'reply_received', 'accepted', 'declined', 'not_relevant', 'archived']),
+  "missingInformation": zod.array(zod.string()),
+  "messageBody": zod.string(),
+  "hasAttachments": zod.boolean(),
+  "hubspotContactId": zod.string().nullable(),
+  "hubspotSyncStatus": zod.enum(['not_requested', 'pending', 'synced', 'needs_attention']),
+  "quote": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "reference": zod.string(),
+  "status": zod.enum(['ready', 'sending', 'sent', 'accepted', 'declined', 'send_uncertain']),
+  "currency": zod.enum(['ZAR']),
+  "lines": zod.array(zod.object({
+  "code": zod.string(),
+  "description": zod.string(),
+  "quantity": zod.number(),
+  "unit": zod.string(),
+  "unitPrice": zod.number(),
+  "total": zod.number()
+})),
+  "subtotal": zod.number(),
+  "notes": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "sentAt": zod.string().nullable()
+}),zod.null()])
+}),
+  "message": zod.string()
+})
+
+
+/**
+ * Re-reads the stored enquiry text and regenerates the AI review or quote proposal. Does not send email, write to HubSpot, or change customer data.
+ * @summary Re-run Grok triage for an enquiry
+ */
+export const ReprocessVantageArsInquiryParams = zod.object({
+  "inquiryId": zod.coerce.string().uuid()
+})
+
+export const ReprocessVantageArsInquiryResponse = zod.object({
+  "inquiry": zod.object({
+  "id": zod.string().uuid(),
+  "customerName": zod.string(),
+  "customerEmail": zod.string().email(),
+  "subject": zod.string(),
+  "receivedAt": zod.coerce.date(),
+  "summary": zod.string().nullable(),
+  "category": zod.string().nullable(),
+  "urgency": zod.string().nullable(),
+  "sentiment": zod.string().nullish(),
+  "tags": zod.array(zod.string()).optional(),
+  "language": zod.string().nullish(),
+  "priorityScore": zod.number().int().optional(),
+  "aiConfidence": zod.number().nullish(),
+  "clarificationSentAt": zod.coerce.date().nullish(),
+  "resolutionAttemptedAt": zod.coerce.date().nullish(),
+  "escalatedAt": zod.coerce.date().nullish(),
+  "followUpSentAt": zod.coerce.date().nullish(),
+  "schedulingEmailSentAt": zod.coerce.date().nullish(),
+  "acceptedAt": zod.coerce.date().nullish(),
+  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'reply_received', 'accepted', 'declined', 'not_relevant', 'archived']),
+  "missingInformation": zod.array(zod.string()),
+  "messageBody": zod.string(),
+  "hasAttachments": zod.boolean(),
+  "hubspotContactId": zod.string().nullable(),
+  "hubspotSyncStatus": zod.enum(['not_requested', 'pending', 'synced', 'needs_attention']),
+  "quote": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "reference": zod.string(),
+  "status": zod.enum(['ready', 'sending', 'sent', 'accepted', 'declined', 'send_uncertain']),
+  "currency": zod.enum(['ZAR']),
+  "lines": zod.array(zod.object({
+  "code": zod.string(),
+  "description": zod.string(),
+  "quantity": zod.number(),
+  "unit": zod.string(),
+  "unitPrice": zod.number(),
+  "total": zod.number()
+})),
+  "subtotal": zod.number(),
+  "notes": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "sentAt": zod.string().nullable()
+}),zod.null()])
+}),
   "message": zod.string()
 })
 
@@ -247,16 +660,27 @@ export const DecideVantageArsQuoteResponse = zod.object({
   "summary": zod.string().nullable(),
   "category": zod.string().nullable(),
   "urgency": zod.string().nullable(),
-  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'declined', 'not_relevant']),
+  "sentiment": zod.string().nullish(),
+  "tags": zod.array(zod.string()).optional(),
+  "language": zod.string().nullish(),
+  "priorityScore": zod.number().int().optional(),
+  "aiConfidence": zod.number().nullish(),
+  "clarificationSentAt": zod.coerce.date().nullish(),
+  "resolutionAttemptedAt": zod.coerce.date().nullish(),
+  "escalatedAt": zod.coerce.date().nullish(),
+  "followUpSentAt": zod.coerce.date().nullish(),
+  "schedulingEmailSentAt": zod.coerce.date().nullish(),
+  "acceptedAt": zod.coerce.date().nullish(),
+  "status": zod.enum(['processing', 'needs_review', 'needs_information', 'quote_ready', 'quote_sent', 'reply_received', 'accepted', 'declined', 'not_relevant', 'archived']),
   "missingInformation": zod.array(zod.string()),
   "messageBody": zod.string(),
   "hasAttachments": zod.boolean(),
   "hubspotContactId": zod.string().nullable(),
-  "hubspotSyncStatus": zod.enum(['not_requested', 'awaiting_approval', 'synced', 'needs_attention']),
+  "hubspotSyncStatus": zod.enum(['not_requested', 'pending', 'synced', 'needs_attention']),
   "quote": zod.union([zod.object({
   "id": zod.string().uuid(),
   "reference": zod.string(),
-  "status": zod.enum(['ready', 'sending', 'sent', 'declined', 'send_uncertain']),
+  "status": zod.enum(['ready', 'sending', 'sent', 'accepted', 'declined', 'send_uncertain']),
   "currency": zod.enum(['ZAR']),
   "lines": zod.array(zod.object({
   "code": zod.string(),

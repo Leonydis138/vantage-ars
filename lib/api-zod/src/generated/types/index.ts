@@ -6,13 +6,28 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './badRequestResponse';
+export * from './exportVantageArsInquiriesParams';
+export * from './exportVantageArsInquiriesStatus';
 export * from './forbiddenResponse';
 export * from './healthStatus';
+export * from './listVantageArsAuditEventsParams';
+export * from './listVantageArsAutomationRunsParams';
 export * from './listVantageArsInquiriesParams';
 export * from './listVantageArsInquiriesStatus';
+export * from './runVantageArsAutonomousCycle200';
+export * from './testVantageArsAutomationWebhook200';
 export * from './unauthorizedResponse';
+export * from './vantageAuditEvent';
+export * from './vantageAuditEventDetails';
+export * from './vantageAutomationBankDetailsInput';
 export * from './vantageAutomationInput';
+export * from './vantageAutomationRun';
+export * from './vantageAutomationRunStatus';
 export * from './vantageAutomationSettings';
+export * from './vantageAutonomousMetrics';
+export * from './vantageAutonomousStep';
+export * from './vantageAutonomyPolicyInput';
 export * from './vantageBankDetails';
 export * from './vantageCrmSyncResult';
 export * from './vantageCrmSyncResultStatus';
@@ -31,6 +46,7 @@ export * from './vantageQuotePreview';
 export * from './vantageQuotePreviewInput';
 export * from './vantageQuoteStatus';
 export * from './vantageRateLine';
+export * from './vantageReprocessResult';
 export * from './vantageServiceStatus';
 export * from './vantageServiceStatusId';
 export * from './vantageServiceStatusStatus';

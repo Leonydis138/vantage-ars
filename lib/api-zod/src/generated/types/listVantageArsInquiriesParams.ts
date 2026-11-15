@@ -9,4 +9,6 @@ import type { ListVantageArsInquiriesStatus } from './listVantageArsInquiriesSta
 
 export type ListVantageArsInquiriesParams = {
 status?: ListVantageArsInquiriesStatus;
+escalated?: boolean;
+search?: string;
 };

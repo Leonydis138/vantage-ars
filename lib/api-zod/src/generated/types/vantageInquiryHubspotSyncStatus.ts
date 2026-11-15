@@ -11,7 +11,7 @@ export type VantageInquiryHubspotSyncStatus = typeof VantageInquiryHubspotSyncSt
 
 export const VantageInquiryHubspotSyncStatus = {
   not_requested: 'not_requested',
-  awaiting_approval: 'awaiting_approval',
+  pending: 'pending',
   synced: 'synced',
   needs_attention: 'needs_attention',
 } as const;

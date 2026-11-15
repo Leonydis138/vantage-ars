@@ -1,5 +1,5 @@
 import { useClerk, useUser } from "@clerk/react";
-import { Activity, ArrowUpRight, Inbox, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
+import { Activity, ArrowUpRight, ClipboardList, Inbox, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 
@@ -27,9 +27,10 @@ export function AppShell({
         <nav className="main-nav" aria-label="Main navigation">
           <Link href="/dashboard" className={`nav-link ${section === "overview" ? "active" : ""}`}><LayoutDashboard size={17} /> Overview</Link>
           <Link href="/inbox" className={`nav-link ${section === "inbox" || location.startsWith("/inquiries/") ? "active" : ""}`}><Inbox size={17} /> Enquiries</Link>
+          <Link href="/audit" className={`nav-link ${location.startsWith("/audit") ? "active" : ""}`}><ClipboardList size={17} /> Audit</Link>
         </nav>
         <div className="sidebar-lower">
-          <div className="secure-note"><ShieldCheck size={16} /><span><b>Owner controlled</b><small>Actions require approval</small></span></div>
+          <div className="secure-note"><ShieldCheck size={16} /><span><b>Owner controlled</b><small>Runs when services are ready · pause anytime</small></span></div>
           <a className="site-link" href="https://vantage-ars.co.za" target="_blank" rel="noreferrer">vantage-ars.co.za <ArrowUpRight size={14} /></a>
           <div className="profile-row">
             <span className="profile-avatar">{firstInitial}</span>

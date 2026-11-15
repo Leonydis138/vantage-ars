@@ -43,6 +43,7 @@ export type VantageDashboardCounts = {
   needsReview: number;
   needsInformation: number;
   quotesReady: number;
+  replyReceived: number;
   quotesSent: number;
   crmSyncNeeded: number;
 };
@@ -71,6 +72,7 @@ export const VantageQuoteStatus = {
   ready: 'ready',
   sending: 'sending',
   sent: 'sent',
+  accepted: 'accepted',
   declined: 'declined',
   send_uncertain: 'send_uncertain',
 } as const;
@@ -104,8 +106,11 @@ export const VantageInquiryStatus = {
   needs_information: 'needs_information',
   quote_ready: 'quote_ready',
   quote_sent: 'quote_sent',
+  reply_received: 'reply_received',
+  accepted: 'accepted',
   declined: 'declined',
   not_relevant: 'not_relevant',
+  archived: 'archived',
 } as const;
 
 export type VantageInquiryHubspotSyncStatus = typeof VantageInquiryHubspotSyncStatus[keyof typeof VantageInquiryHubspotSyncStatus];
@@ -113,7 +118,7 @@ export type VantageInquiryHubspotSyncStatus = typeof VantageInquiryHubspotSyncSt
 
 export const VantageInquiryHubspotSyncStatus = {
   not_requested: 'not_requested',
-  awaiting_approval: 'awaiting_approval',
+  pending: 'pending',
   synced: 'synced',
   needs_attention: 'needs_attention',
 } as const;
@@ -130,6 +135,26 @@ export interface VantageInquiry {
   category: string | null;
   /** @nullable */
   urgency: string | null;
+  /** @nullable */
+  sentiment?: string | null;
+  tags?: string[];
+  /** @nullable */
+  language?: string | null;
+  priorityScore?: number;
+  /** @nullable */
+  aiConfidence?: number | null;
+  /** @nullable */
+  clarificationSentAt?: string | null;
+  /** @nullable */
+  resolutionAttemptedAt?: string | null;
+  /** @nullable */
+  escalatedAt?: string | null;
+  /** @nullable */
+  followUpSentAt?: string | null;
+  /** @nullable */
+  schedulingEmailSentAt?: string | null;
+  /** @nullable */
+  acceptedAt?: string | null;
   status: VantageInquiryStatus;
   missingInformation: string[];
   messageBody: string;
@@ -140,23 +165,93 @@ export interface VantageInquiry {
   quote: VantageQuote | null;
 }
 
+export interface VantageAutonomousMetrics {
+  totalInquiries: number;
+  escalatedInquiries: number;
+  resolvedInquiries: number;
+  solutionPatterns: number;
+  autonomousActions: number;
+  acceptedInquiries: number;
+  customerReplies: number;
+  quotedValue: number;
+  acceptedValue: number;
+}
+
 export interface VantageSyncResult {
   scanned: number;
   imported: number;
   alreadySeen: number;
   processed: number;
   awaitingGrok: number;
+  repliesLinked: number;
+  autoAccepted: number;
+  autoDeclined: number;
   inquiries: VantageInquiry[];
+  message: string;
+}
+
+export interface VantageAutonomousStep {
+  key: string;
+  label: string;
   message: string;
 }
 
 export interface VantageAutomationSettings {
   enabled: boolean;
+  pausedByOwner: boolean;
+  autonomousSendingEnabled: boolean;
   intervalMinutes: number;
   matchingQuery: string;
   providerReady: boolean;
+  bankDetailsConfigured: boolean;
+  schedulingUrl: string;
+  notificationWebhookUrl: string;
+  notificationWebhookSecretConfigured: boolean;
+  slaHours: number;
+  followUpDays: number;
+  archiveDays: number;
+  lastCycleSteps: VantageAutonomousStep[];
   /** @nullable */
   lastRunAt: string | null;
+}
+
+export type VantageAutomationRunStatus = typeof VantageAutomationRunStatus[keyof typeof VantageAutomationRunStatus];
+
+
+export const VantageAutomationRunStatus = {
+  completed: 'completed',
+  failed: 'failed',
+} as const;
+
+export interface VantageAutomationRun {
+  id: string;
+  status: VantageAutomationRunStatus;
+  message: string;
+  steps: VantageAutonomousStep[];
+  startedAt: string;
+  completedAt: string;
+}
+
+export interface VantageAutonomyPolicyInput {
+  schedulingUrl?: string;
+  notificationWebhookUrl?: string;
+  notificationWebhookSecret?: string;
+  clearWebhookSecret?: boolean;
+  /**
+     * @minimum 1
+     * @maximum 168
+     */
+  slaHours: number;
+  /**
+     * @minimum 1
+     * @maximum 90
+     */
+  followUpDays: number;
+  /**
+     * @minimum 7
+     * @maximum 365
+     */
+  archiveDays: number;
 }
 
 export interface VantageAutomationInput {
@@ -220,9 +315,36 @@ export interface VantageQuoteDecisionResult {
   message: string;
 }
 
+export interface VantageReprocessResult {
+  inquiry: VantageInquiry;
+  message: string;
+}
+
+export type VantageAuditEventDetails = { [key: string]: unknown };
+
+export interface VantageAuditEvent {
+  id: string;
+  /** @nullable */
+  inquiryId?: string | null;
+  ownerUserId: string;
+  eventType: string;
+  details: VantageAuditEventDetails;
+  createdAt: string;
+}
+
+export interface VantageAutomationBankDetailsInput {
+  bankDetails: VantageBankDetails;
+  autonomousSendingEnabled?: boolean;
+}
+
 export interface VantageError {
   error: string;
 }
+
+/**
+ * The request is invalid
+ */
+export type BadRequestResponse = VantageError;
 
 /**
  * Sign-in required
@@ -236,6 +358,8 @@ export type ForbiddenResponse = VantageError;
 
 export type ListVantageArsInquiriesParams = {
 status?: ListVantageArsInquiriesStatus;
+escalated?: boolean;
+search?: string;
 };
 
 export type ListVantageArsInquiriesStatus = typeof ListVantageArsInquiriesStatus[keyof typeof ListVantageArsInquiriesStatus];
@@ -243,10 +367,55 @@ export type ListVantageArsInquiriesStatus = typeof ListVantageArsInquiriesStatus
 
 export const ListVantageArsInquiriesStatus = {
   all: 'all',
+  processing: 'processing',
   needs_review: 'needs_review',
   needs_information: 'needs_information',
   quote_ready: 'quote_ready',
   quote_sent: 'quote_sent',
+  reply_received: 'reply_received',
+  accepted: 'accepted',
   declined: 'declined',
+  not_relevant: 'not_relevant',
+  archived: 'archived',
 } as const;
+
+export type RunVantageArsAutonomousCycle200 = {
+  message: string;
+  steps: VantageAutonomousStep[];
+};
+
+export type ExportVantageArsInquiriesParams = {
+status?: ExportVantageArsInquiriesStatus;
+escalated?: boolean;
+search?: string;
+};
+
+export type ExportVantageArsInquiriesStatus = typeof ExportVantageArsInquiriesStatus[keyof typeof ExportVantageArsInquiriesStatus];
+
+
+export const ExportVantageArsInquiriesStatus = {
+  all: 'all',
+  processing: 'processing',
+  needs_review: 'needs_review',
+  needs_information: 'needs_information',
+  quote_ready: 'quote_ready',
+  quote_sent: 'quote_sent',
+  reply_received: 'reply_received',
+  accepted: 'accepted',
+  declined: 'declined',
+  not_relevant: 'not_relevant',
+  archived: 'archived',
+} as const;
+
+export type ListVantageArsAuditEventsParams = {
+limit?: number;
+};
+
+export type ListVantageArsAutomationRunsParams = {
+limit?: number;
+};
+
+export type TestVantageArsAutomationWebhook200 = {
+  message: string;
+};
 

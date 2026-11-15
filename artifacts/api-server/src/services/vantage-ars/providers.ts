@@ -113,24 +113,36 @@ type XaiLanguageModel = {
   output_modalities?: string[];
 };
 
-let modelCache: { id: string; expiresAt: number } | null = null;
+let modelCache: { ids: string[]; expiresAt: number } | null = null;
 
-export async function discoverGrokModel(): Promise<string> {
-  if (modelCache && modelCache.expiresAt > Date.now()) return modelCache.id;
+function rankGrokModel(id: string) {
+  const lower = id.toLowerCase();
+  if (lower.includes("grok-4")) return 0;
+  if (lower.includes("grok-3")) return 1;
+  if (lower.includes("grok-2")) return 2;
+  return 3;
+}
+
+export async function discoverGrokModels(): Promise<string[]> {
+  if (modelCache && modelCache.expiresAt > Date.now()) return modelCache.ids;
 
   const response = await providerJson<{ models?: XaiLanguageModel[] }>(
     "xai",
     "/v1/language-models",
   );
 
-  const eligible = (response.models ?? []).filter((model) => {
-    const id = model.id?.toLowerCase() ?? "";
-    return (
-      id.includes("grok") &&
-      model.input_modalities?.includes("text") === true &&
-      model.output_modalities?.includes("text") === true
-    );
-  });
+  const eligible = (response.models ?? [])
+    .filter((model) => {
+      const id = model.id?.toLowerCase() ?? "";
+      return (
+        id.includes("grok") &&
+        model.input_modalities?.includes("text") === true &&
+        model.output_modalities?.includes("text") === true
+      );
+    })
+    .map((model) => model.id!)
+    .filter(Boolean)
+    .sort((a, b) => rankGrokModel(a) - rankGrokModel(b));
 
   if (eligible.length === 0) {
     throw new ProviderError(
@@ -140,17 +152,16 @@ export async function discoverGrokModel(): Promise<string> {
     );
   }
 
-  const modelId = eligible[0]?.id;
-  if (!modelId) {
-    throw new ProviderError(
-      "xai",
-      503,
-      "xAI did not return a usable Grok model identifier.",
-    );
-  }
+  modelCache = { ids: eligible, expiresAt: Date.now() + 10 * 60 * 1000 };
+  return eligible;
+}
 
-  modelCache = { id: modelId, expiresAt: Date.now() + 10 * 60 * 1000 };
-  return modelId;
+export async function discoverGrokModel(): Promise<string> {
+  const models = await discoverGrokModels();
+  if (models.length === 0) {
+    throw new ProviderError("xai", 503, "No Grok model available.");
+  }
+  return models[0]!;
 }
 
 export async function checkProviderStatuses() {
@@ -250,58 +261,61 @@ export async function checkProviderStatuses() {
   ];
 }
 
-export async function grokJson<T>(
-  systemPrompt: string,
-  userPrompt: string,
-): Promise<T> {
-  const model = await discoverGrokModel();
-  try {
-    const response = await providerJson<{
-      choices?: Array<{ message?: { content?: string | unknown[] } }>;
-    }>("xai", "/v1/chat/completions", {
-      method: "POST",
-      body: {
-        model,
-        max_completion_tokens: 1800,
-        temperature: 0.1,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      },
-    });
-
-    const rawContent = response.choices?.[0]?.message?.content;
-    const content =
-      typeof rawContent === "string"
-        ? rawContent
-        : Array.isArray(rawContent)
-          ? rawContent
-              .map((part) =>
-                part &&
-                typeof part === "object" &&
-                "text" in part &&
-                typeof part.text === "string"
-                  ? part.text
-                  : "",
-              )
-              .join("")
-          : "";
-    if (!content) {
-      throw new Error("Grok returned an empty response.");
-    }
-    return JSON.parse(content) as T;
-  } catch (error) {
-    if (error instanceof ProviderError) {
-      modelCache = null;
-      throw error;
-    }
-    throw new ProviderError(
-      "xai",
-      502,
-      "Grok returned a response that could not be processed. Retry the enquiry.",
-    );
+function extractContent(payload: unknown): string {
+  const rawContent = (payload as { choices?: Array<{ message?: { content?: string | unknown[] } }> })
+    ?.choices?.[0]?.message?.content;
+  if (typeof rawContent === "string") return rawContent;
+  if (Array.isArray(rawContent)) {
+    return rawContent
+      .map((part) =>
+        part &&
+        typeof part === "object" &&
+        "text" in part &&
+        typeof part.text === "string"
+          ? part.text
+          : "",
+      )
+      .join("");
   }
+  return "";
+}
+
+async function completeXai(model: string, systemPrompt: string, userPrompt: string) {
+  const response = await providerJson<{
+    choices?: Array<{ message?: { content?: string | unknown[] } }>;
+  }>("xai", "/v1/chat/completions", {
+    method: "POST",
+    body: {
+      model,
+      max_completion_tokens: 1800,
+      temperature: 0.1,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    },
+  });
+  return extractContent(response);
+}
+
+export async function grokJson<T>(systemPrompt: string, userPrompt: string): Promise<T> {
+  const models = await discoverGrokModels();
+  const errors: string[] = [];
+  for (const model of models) {
+    try {
+      const content = await completeXai(model, systemPrompt, userPrompt);
+      if (!content) throw new Error("Empty AI response.");
+      return JSON.parse(content) as T;
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : "AI request failed");
+      modelCache = null;
+    }
+  }
+  throw new ProviderError(
+    "xai",
+    502,
+    `Grok could not process this request. ${errors.slice(-3).join(" | ")}`,
+  );
 }
 

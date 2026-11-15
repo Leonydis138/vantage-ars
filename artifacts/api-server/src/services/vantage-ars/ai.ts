@@ -33,6 +33,25 @@ function normalizeTriage(value: GrokTriage): GrokTriage {
       value.urgency === "high" || value.urgency === "low"
         ? value.urgency
         : "normal",
+    sentiment:
+      value.sentiment === "positive" ||
+      value.sentiment === "negative" ||
+      value.sentiment === "urgent"
+        ? value.sentiment
+        : "neutral",
+    confidence:
+      typeof value.confidence === "number" && Number.isFinite(value.confidence)
+        ? Math.min(1, Math.max(0, value.confidence))
+        : 0.5,
+    language:
+      typeof value.language === "string" && value.language.trim()
+        ? value.language.trim().slice(0, 40)
+        : "English",
+    priorityScore:
+      typeof value.priorityScore === "number" && Number.isFinite(value.priorityScore)
+        ? Math.min(100, Math.max(0, Math.round(value.priorityScore)))
+        : 50,
+    tags: cleanMissingInformation(value.tags).slice(0, 8),
     quoteReady: value.quoteReady === true,
     missingInformation: cleanMissingInformation(value.missingInformation),
     quoteItems: Array.isArray(value.quoteItems)
@@ -98,6 +117,11 @@ export async function processInquiryWithGrok(inquiry: DbInquiry) {
         summary: result.summary || "Grok did not identify a Vantage ARS enquiry.",
         category: result.category || null,
         urgency: result.urgency,
+        sentiment: result.sentiment,
+        language: result.language,
+        tags: result.tags,
+        priorityScore: result.priorityScore,
+        aiConfidence: result.confidence.toFixed(3),
         missingInformation: [],
         processingError: null,
         status: "not_relevant",
@@ -136,6 +160,11 @@ export async function processInquiryWithGrok(inquiry: DbInquiry) {
         summary: result.summary || "Grok could not prepare a reliable summary.",
         category: result.category || null,
         urgency: result.urgency,
+        sentiment: result.sentiment,
+        language: result.language,
+        tags: result.tags,
+        priorityScore: result.priorityScore,
+        aiConfidence: result.confidence.toFixed(3),
         missingInformation:
           missingInformation.length > 0
             ? missingInformation
@@ -178,7 +207,7 @@ export async function processInquiryWithGrok(inquiry: DbInquiry) {
       quoteCreatedAt: new Date(),
       quoteSentAt: null,
       gmailSentMessageId: null,
-      hubspotSyncStatus: "awaiting_approval",
+      hubspotSyncStatus: "not_requested",
       updatedAt: new Date(),
     })
     .where(eq(vantageInquiriesTable.id, inquiry.id));

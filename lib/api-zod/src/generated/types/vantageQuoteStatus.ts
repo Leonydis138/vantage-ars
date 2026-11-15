@@ -13,6 +13,7 @@ export const VantageQuoteStatus = {
   ready: 'ready',
   sending: 'sending',
   sent: 'sent',
+  accepted: 'accepted',
   declined: 'declined',
   send_uncertain: 'send_uncertain',
 } as const;

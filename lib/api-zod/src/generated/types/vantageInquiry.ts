@@ -21,6 +21,26 @@ export interface VantageInquiry {
   category: string | null;
   /** @nullable */
   urgency: string | null;
+  /** @nullable */
+  sentiment?: string | null;
+  tags?: string[];
+  /** @nullable */
+  language?: string | null;
+  priorityScore?: number;
+  /** @nullable */
+  aiConfidence?: number | null;
+  /** @nullable */
+  clarificationSentAt?: Date | null;
+  /** @nullable */
+  resolutionAttemptedAt?: Date | null;
+  /** @nullable */
+  escalatedAt?: Date | null;
+  /** @nullable */
+  followUpSentAt?: Date | null;
+  /** @nullable */
+  schedulingEmailSentAt?: Date | null;
+  /** @nullable */
+  acceptedAt?: Date | null;
   status: VantageInquiryStatus;
   missingInformation: string[];
   messageBody: string;

@@ -13,6 +13,9 @@ export interface VantageSyncResult {
   alreadySeen: number;
   processed: number;
   awaitingGrok: number;
+  repliesLinked: number;
+  autoAccepted: number;
+  autoDeclined: number;
   inquiries: VantageInquiry[];
   message: string;
 }
