@@ -395,6 +395,44 @@ function webhookHeaders(body: string, secret: string, eventType: string) {
   return headers;
 }
 
+const WEBHOOK_MAX_ATTEMPTS = 3;
+const WEBHOOK_BASE_DELAY_MS = 2_000;
+const WEBHOOK_MAX_DELAY_MS = 30_000;
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function nextBackoffDelayMs(attempt: number) {
+  const delay = Math.min(WEBHOOK_BASE_DELAY_MS * 2 ** (attempt - 1), WEBHOOK_MAX_DELAY_MS);
+  const jitter = Math.floor(Math.random() * delay);
+  return delay + jitter;
+}
+
+async function deliverWebhook(
+  policy: Awaited<ReturnType<typeof getAutonomyPolicy>>,
+  eventType: string,
+  inquiryId: string | null,
+  details: Record<string, string | number | boolean | null>,
+) {
+  const body = JSON.stringify({
+    eventType,
+    inquiryId,
+    occurredAt: new Date().toISOString(),
+    details,
+  });
+  const target = await assertSafeWebhookUrl(policy.notificationWebhookUrl);
+  const response = await fetch(target, {
+    method: "POST",
+    headers: webhookHeaders(body, policy.notificationWebhookSecret, eventType),
+    body,
+    signal: AbortSignal.timeout(5_000),
+  });
+  if (!response.ok) throw new Error(`Webhook returned ${response.status}.`);
+}
+
 async function sendWebhookNotification(
   eventType: string,
   inquiryId: string | null,
@@ -402,32 +440,30 @@ async function sendWebhookNotification(
 ) {
   const policy = await getAutonomyPolicy();
   if (!policy.notificationWebhookUrl) return;
-  try {
-    const body = JSON.stringify({
-      eventType,
-      inquiryId,
-      occurredAt: new Date().toISOString(),
-      details,
-    });
-    const target = await assertSafeWebhookUrl(policy.notificationWebhookUrl);
-    const response = await fetch(target, {
-      method: "POST",
-      headers: webhookHeaders(body, policy.notificationWebhookSecret, eventType),
-      body,
-      signal: AbortSignal.timeout(5_000),
-    });
-    if (!response.ok) throw new Error(`Webhook returned ${response.status}.`);
-  } catch (error) {
-    await db.insert(vantageAuditEventsTable).values({
-      inquiryId,
-      ownerUserId: "automation",
-      eventType: "webhook_notification_failed",
-      details: {
-        eventType,
-        error: error instanceof Error ? error.message.slice(0, 200) : "Webhook failed.",
-      },
-    });
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= WEBHOOK_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      await deliverWebhook(policy, eventType, inquiryId, details);
+      return;
+    } catch (error) {
+      lastError = error;
+      const retryable = !(error instanceof OperationsError);
+      if (!retryable || attempt >= WEBHOOK_MAX_ATTEMPTS) {
+        break;
+      }
+      await sleep(nextBackoffDelayMs(attempt));
+    }
   }
+  await db.insert(vantageAuditEventsTable).values({
+    inquiryId,
+    ownerUserId: "automation",
+    eventType: "webhook_notification_failed",
+    details: {
+      eventType,
+      attempts: WEBHOOK_MAX_ATTEMPTS,
+      error: lastError instanceof Error ? lastError.message.slice(0, 200) : "Webhook failed.",
+    },
+  });
 }
 
 async function audit(

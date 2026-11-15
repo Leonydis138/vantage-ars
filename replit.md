@@ -55,6 +55,7 @@ Autonomous owner operations system for Vantage ARS. Grok reviews real customer e
 - Scheduling links, SLA hours, follow-up days, and archive days are stored in `vantage_ars_automation_settings`.
 - Outbound webhook notifications are HMAC-SHA256 signed when a webhook secret is configured.
 - Webhook URLs must resolve to a public address; loopback, private, link-local, metadata, and non-HTTPS production targets are rejected.
+- Outbound webhook notifications retry up to 3 times with exponential backoff and jitter; unsafe webhook URLs fail fast with a `400` before any retry.
 - Quote replies are linked back to the original quote thread. Clear acceptance and decline phrases update the quote automatically.
 - Cloudflare stays read-only; no DNS changes are made by automation.
 - Automatic-cycle history is retained for 90 days.
