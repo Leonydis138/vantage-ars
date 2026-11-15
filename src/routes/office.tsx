@@ -1,9 +1,5 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { OfficeProvider } from "@/components/office/office-context";
-import { PrivateDoor } from "@/components/office/private-door";
-import { AppShell } from "@/components/layout/app-shell";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { createFileRoute } from "@tanstack/react-router";
+import { OfficeWorkspace, WorkspacePending } from "@/components/office/office-workspace";
 import { getOfficeSnapshot } from "@/lib/office/api";
 
 export const Route = createFileRoute("/office")({
@@ -12,35 +8,9 @@ export const Route = createFileRoute("/office")({
   }),
   loader: () => getOfficeSnapshot(),
   component: OfficeLayout,
-  pendingComponent: OfficePending,
+  pendingComponent: WorkspacePending,
 });
 
 function OfficeLayout() {
-  const access = Route.useLoaderData();
-  const { user, isPending } = useCurrentUserState();
-  // The server decides who the founder is; the loader only returns records
-  // to a verified founder session.
-  if (access.locked) {
-    if (isPending) return <OfficePending />;
-    return <PrivateDoor user={user} />;
-  }
-  return (
-    <OfficeProvider snapshot={access.snapshot}>
-      <AppShell snapshot={access.snapshot}>
-        <Outlet />
-      </AppShell>
-    </OfficeProvider>
-  );
-}
-
-function OfficePending() {
-  return (
-    <div className="min-h-dvh bg-bg p-6">
-      <Skeleton className="h-14 w-full" />
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        <Skeleton className="h-40" />
-        <Skeleton className="h-40" />
-      </div>
-    </div>
-  );
+  return <OfficeWorkspace access={Route.useLoaderData()} />;
 }

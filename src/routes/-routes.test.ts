@@ -11,6 +11,18 @@ const here = dirname(fileURLToPath(import.meta.url));
 /** Every file-based route must declare the path matching its filename. */
 const EXPECTED: Record<string, string> = {
   "index.tsx": '"/"',
+  "_app.tsx": '"/_app"',
+  "_app.dashboard.tsx": '"/_app/dashboard"',
+  "_app.tasks.tsx": '"/_app/tasks"',
+  "_app.opencode.tsx": '"/_app/opencode"',
+  "_app.analytics.tsx": '"/_app/analytics"',
+  "_app.settings.tsx": '"/_app/settings"',
+  "_app.profile.tsx": '"/_app/profile"',
+  "_app.activity-log.tsx": '"/_app/activity-log"',
+  "_app.projects.tsx": '"/_app/projects"',
+  "_app.help.tsx": '"/_app/help"',
+  "_app.import-data.tsx": '"/_app/import-data"',
+  "_app.notifications.tsx": '"/_app/notifications"',
   "find.tsx": '"/find"',
   "assess.tsx": '"/assess"',
   "automation.tsx": '"/automation"',

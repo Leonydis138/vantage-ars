@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as AssessRouteImport } from './routes/assess'
 import { Route as AutomationRouteImport } from './routes/automation'
 import { Route as FindRouteImport } from './routes/find'
@@ -27,6 +28,17 @@ import { Route as StatusRouteImport } from './routes/status'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WorkRouteImport } from './routes/work'
+import { Route as AppActivityLogRouteImport } from './routes/_app.activity-log'
+import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppHelpRouteImport } from './routes/_app.help'
+import { Route as AppImportDataRouteImport } from './routes/_app.import-data'
+import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
+import { Route as AppOpencodeRouteImport } from './routes/_app.opencode'
+import { Route as AppProfileRouteImport } from './routes/_app.profile'
+import { Route as AppProjectsRouteImport } from './routes/_app.projects'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppTasksRouteImport } from './routes/_app.tasks'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiSiteSignalRouteImport } from './routes/api/site-signal'
 import { Route as GuidesSlugRouteImport } from './routes/guides.$slug'
@@ -61,6 +73,10 @@ import { Route as ApiCronFloorRouteImport } from './routes/api/cron/floor'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AssessRoute = AssessRouteImport.update({
@@ -147,6 +163,61 @@ const WorkRoute = WorkRouteImport.update({
   id: '/work',
   path: '/work',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppActivityLogRoute = AppActivityLogRouteImport.update({
+  id: '/activity-log',
+  path: '/activity-log',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHelpRoute = AppHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImportDataRoute = AppImportDataRouteImport.update({
+  id: '/import-data',
+  path: '/import-data',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOpencodeRoute = AppOpencodeRouteImport.update({
+  id: '/opencode',
+  path: '/opencode',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectsRoute = AppProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTasksRoute = AppTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AppRoute,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
@@ -318,6 +389,17 @@ export interface FileRoutesByFullPath {
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/work': typeof WorkRoute
+  '/activity-log': typeof AppActivityLogRoute
+  '/analytics': typeof AppAnalyticsRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/help': typeof AppHelpRoute
+  '/import-data': typeof AppImportDataRoute
+  '/notifications': typeof AppNotificationsRoute
+  '/opencode': typeof AppOpencodeRoute
+  '/profile': typeof AppProfileRoute
+  '/projects': typeof AppProjectsRoute
+  '/settings': typeof AppSettingsRoute
+  '/tasks': typeof AppTasksRoute
   '/api/health': typeof ApiHealthRoute
   '/api/site-signal': typeof ApiSiteSignalRoute
   '/guides/$slug': typeof GuidesSlugRoute
@@ -366,6 +448,17 @@ export interface FileRoutesByTo {
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/work': typeof WorkRoute
+  '/activity-log': typeof AppActivityLogRoute
+  '/analytics': typeof AppAnalyticsRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/help': typeof AppHelpRoute
+  '/import-data': typeof AppImportDataRoute
+  '/notifications': typeof AppNotificationsRoute
+  '/opencode': typeof AppOpencodeRoute
+  '/profile': typeof AppProfileRoute
+  '/projects': typeof AppProjectsRoute
+  '/settings': typeof AppSettingsRoute
+  '/tasks': typeof AppTasksRoute
   '/api/health': typeof ApiHealthRoute
   '/api/site-signal': typeof ApiSiteSignalRoute
   '/guides/$slug': typeof GuidesSlugRoute
@@ -400,6 +493,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
   '/assess': typeof AssessRoute
   '/automation': typeof AutomationRoute
   '/find': typeof FindRoute
@@ -417,6 +511,17 @@ export interface FileRoutesById {
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/work': typeof WorkRoute
+  '/_app/activity-log': typeof AppActivityLogRoute
+  '/_app/analytics': typeof AppAnalyticsRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/help': typeof AppHelpRoute
+  '/_app/import-data': typeof AppImportDataRoute
+  '/_app/notifications': typeof AppNotificationsRoute
+  '/_app/opencode': typeof AppOpencodeRoute
+  '/_app/profile': typeof AppProfileRoute
+  '/_app/projects': typeof AppProjectsRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/tasks': typeof AppTasksRoute
   '/api/health': typeof ApiHealthRoute
   '/api/site-signal': typeof ApiSiteSignalRoute
   '/guides/$slug': typeof GuidesSlugRoute
@@ -469,6 +574,17 @@ export interface FileRouteTypes {
     | '/support'
     | '/terms'
     | '/work'
+    | '/activity-log'
+    | '/analytics'
+    | '/dashboard'
+    | '/help'
+    | '/import-data'
+    | '/notifications'
+    | '/opencode'
+    | '/profile'
+    | '/projects'
+    | '/settings'
+    | '/tasks'
     | '/api/health'
     | '/api/site-signal'
     | '/guides/$slug'
@@ -517,6 +633,17 @@ export interface FileRouteTypes {
     | '/support'
     | '/terms'
     | '/work'
+    | '/activity-log'
+    | '/analytics'
+    | '/dashboard'
+    | '/help'
+    | '/import-data'
+    | '/notifications'
+    | '/opencode'
+    | '/profile'
+    | '/projects'
+    | '/settings'
+    | '/tasks'
     | '/api/health'
     | '/api/site-signal'
     | '/guides/$slug'
@@ -550,6 +677,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_app'
     | '/assess'
     | '/automation'
     | '/find'
@@ -567,6 +695,17 @@ export interface FileRouteTypes {
     | '/support'
     | '/terms'
     | '/work'
+    | '/_app/activity-log'
+    | '/_app/analytics'
+    | '/_app/dashboard'
+    | '/_app/help'
+    | '/_app/import-data'
+    | '/_app/notifications'
+    | '/_app/opencode'
+    | '/_app/profile'
+    | '/_app/projects'
+    | '/_app/settings'
+    | '/_app/tasks'
     | '/api/health'
     | '/api/site-signal'
     | '/guides/$slug'
@@ -601,6 +740,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   AssessRoute: typeof AssessRoute
   AutomationRoute: typeof AutomationRoute
   FindRoute: typeof FindRoute
@@ -635,6 +775,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/assess': {
@@ -755,6 +902,83 @@ declare module '@tanstack/react-router' {
       fullPath: '/work'
       preLoaderRoute: typeof WorkRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/activity-log': {
+      id: '/_app/activity-log'
+      path: '/activity-log'
+      fullPath: '/activity-log'
+      preLoaderRoute: typeof AppActivityLogRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/analytics': {
+      id: '/_app/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AppAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/help': {
+      id: '/_app/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof AppHelpRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/import-data': {
+      id: '/_app/import-data'
+      path: '/import-data'
+      fullPath: '/import-data'
+      preLoaderRoute: typeof AppImportDataRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/notifications': {
+      id: '/_app/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/opencode': {
+      id: '/_app/opencode'
+      path: '/opencode'
+      fullPath: '/opencode'
+      preLoaderRoute: typeof AppOpencodeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profile': {
+      id: '/_app/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/projects': {
+      id: '/_app/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof AppProjectsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/tasks': {
+      id: '/_app/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof AppTasksRouteImport
+      parentRoute: typeof AppRoute
     }
     '/api/health': {
       id: '/api/health'
@@ -969,6 +1193,36 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppRouteChildren {
+  AppActivityLogRoute: typeof AppActivityLogRoute
+  AppAnalyticsRoute: typeof AppAnalyticsRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppHelpRoute: typeof AppHelpRoute
+  AppImportDataRoute: typeof AppImportDataRoute
+  AppNotificationsRoute: typeof AppNotificationsRoute
+  AppOpencodeRoute: typeof AppOpencodeRoute
+  AppProfileRoute: typeof AppProfileRoute
+  AppProjectsRoute: typeof AppProjectsRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppTasksRoute: typeof AppTasksRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppActivityLogRoute: AppActivityLogRoute,
+  AppAnalyticsRoute: AppAnalyticsRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppHelpRoute: AppHelpRoute,
+  AppImportDataRoute: AppImportDataRoute,
+  AppNotificationsRoute: AppNotificationsRoute,
+  AppOpencodeRoute: AppOpencodeRoute,
+  AppProfileRoute: AppProfileRoute,
+  AppProjectsRoute: AppProjectsRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppTasksRoute: AppTasksRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 interface GuidesRouteChildren {
   GuidesSlugRoute: typeof GuidesSlugRoute
 }
@@ -1043,6 +1297,7 @@ const ServicesRouteWithChildren = ServicesRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   AssessRoute: AssessRoute,
   AutomationRoute: AutomationRoute,
   FindRoute: FindRoute,

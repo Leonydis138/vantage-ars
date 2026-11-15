@@ -46,6 +46,8 @@ Postgres, real scheduler tick and real agents. It is intentionally not mocked.
 | `src/components/public/` | Public-site primitives: frame, enquiry form, live field, motion.                                                             |
 | `src/components/office/` | Founder-office shell, panels and snapshot context.                                                                           |
 | `src/lib/office/`        | The office: store, governor, duties, queue, delegation, revenue, health, backup. Pure policy modules sit beside their tests. |
+| `src/lib/opencode/`      | The build desk (`/opencode`). `agent.ts` is the tested agent protocol: which paths may be read or rewritten, and how a model's action is parsed. `runner.server.ts` streams a run to the terminal; nothing is written until the founder applies it, and a failed typecheck/lint reverts every file. Runs live in the server process. |
+| `src/lib/workspace/`     | The founder's browser-only workspace preferences (compact lists, relative timestamps, finished work). |
 | `src/lib/site/`          | Public-site metadata, tracked paths and SEO helpers.                                                                         |
 | `src/lib/auth/`          | Better Auth wiring, founder gate and PGlite dialect.                                                                         |
 | `migrations/`            | The single schema source. Both PGLite and Neon apply these files.                                                            |

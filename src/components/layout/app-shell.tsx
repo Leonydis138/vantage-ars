@@ -2,15 +2,21 @@ import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   BarChart3,
+  Bell,
   Bot,
   BriefcaseBusiness,
   ClipboardCheck,
   FileCheck2,
   FileText,
+  FolderKanban,
+  Gauge,
   Headphones,
+  History,
   Inbox,
   LayoutDashboard,
   Library,
+  LifeBuoy,
+  ListChecks,
   Menu,
   MessageCircle,
   Megaphone,
@@ -19,7 +25,12 @@ import {
   Repeat2,
   Scale,
   ScrollText,
+  Settings2,
   SlidersHorizontal,
+  SquareTerminal,
+  TrendingUp,
+  Upload,
+  UserRound,
   Users,
   Wrench,
   type LucideIcon,
@@ -64,6 +75,23 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/office/metrics", label: "Metrics", Icon: BarChart3 },
 ];
 
+/** The founder's own workspace: the daily read, the lists and the account. */
+const WORKSPACE_ITEMS: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard", Icon: Gauge },
+  { href: "/opencode", label: "OpenCode", Icon: SquareTerminal },
+  { href: "/tasks", label: "Tasks", Icon: ListChecks },
+  { href: "/projects", label: "Projects", Icon: FolderKanban },
+  { href: "/analytics", label: "Analytics", Icon: TrendingUp },
+  { href: "/activity-log", label: "Activity log", Icon: History },
+  { href: "/notifications", label: "Notifications", Icon: Bell },
+  { href: "/import-data", label: "Import data", Icon: Upload },
+  { href: "/settings", label: "Settings", Icon: Settings2 },
+  { href: "/profile", label: "Profile", Icon: UserRound },
+  { href: "/help", label: "Help", Icon: LifeBuoy },
+];
+
+const ALL_NAV_ITEMS: NavItem[] = [...WORKSPACE_ITEMS, ...NAV_ITEMS];
+
 const GOVERNANCE_HREFS = new Set([
   "/office/delegations",
   "/office/constitution",
@@ -90,7 +118,7 @@ const GOVERNANCE_NAV_ITEMS = NAV_ITEMS.filter((item) => GOVERNANCE_HREFS.has(ite
 
 function NavLink({ href, label, onClick }: { href: string; label: string; onClick?: () => void }) {
   const location = useLocation();
-  const item = NAV_ITEMS.find((navItem) => navItem.href === href);
+  const item = ALL_NAV_ITEMS.find((navItem) => navItem.href === href);
   const Icon = item?.Icon;
 
   const active =
@@ -139,6 +167,14 @@ function OfficeNavigation({
   return (
     <nav className={cn("office-navigation space-y-1", mobile ? "px-1 py-4" : "px-3 py-5")}>
       <div className="office-nav-heading mb-3 px-3 font-mono text-[9px] uppercase tracking-[0.22em] text-muted">
+        Workspace
+      </div>
+
+      {WORKSPACE_ITEMS.map((item) => (
+        <NavLink key={item.href} {...item} onClick={onNavigate} />
+      ))}
+
+      <div className="office-nav-heading mb-3 mt-7 px-3 font-mono text-[9px] uppercase tracking-[0.22em] text-muted">
         Customer workspace
       </div>
 

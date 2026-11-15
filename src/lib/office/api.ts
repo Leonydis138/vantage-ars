@@ -530,6 +530,48 @@ export const submitInbound = createServerFn({ method: "POST" })
     };
   });
 
+/**
+ * File a spreadsheet import as inbound items.
+ *
+ * Imported rows enter the same inbox as a website enquiry, so the office's own
+ * routing decides what each one becomes. Nothing is created beyond the inbound
+ * item; the importer cannot invent leads, quotes or money.
+ */
+export const importInboundItems = createServerFn({ method: "POST" })
+  .middleware([founderMiddleware])
+  .validator(
+    (input: {
+      rows: {
+        companyName: string;
+        subject: string;
+        summary: string;
+        channel: string;
+        intent: string;
+      }[];
+    }) => input,
+  )
+  .handler(async ({ data }) => {
+    const rows = (Array.isArray(data.rows) ? data.rows : [])
+      .map((row) => ({
+        companyName: String(row?.companyName ?? "").trim(),
+        subject: String(row?.subject ?? "").trim(),
+        summary: String(row?.summary ?? "").trim(),
+        channel: String(row?.channel ?? "").trim() || "import",
+        intent: String(row?.intent ?? "").trim() || "unclassified",
+      }))
+      .filter((row) => row.companyName && row.subject)
+      .slice(0, 100);
+
+    if (rows.length === 0) {
+      return { ok: false as const, error: "No row had both a company and a subject." };
+    }
+
+    for (const row of rows) {
+      await logInboundItem(row);
+    }
+    return { ok: true as const, imported: rows.length };
+  });
+
 export const fileQuote = createServerFn({ method: "POST" })
   .middleware([founderMiddleware])
   .validator(
