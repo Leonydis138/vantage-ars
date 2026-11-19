@@ -138,9 +138,12 @@ export function PublicFrame({ children }: { children: ReactNode }) {
           </span>
           <span className="hidden h-3 w-px bg-border sm:block" aria-hidden="true" />
           {trustPills.map(({ label, Icon }) => (
+            // On phones the pills wrap into four stacked rows above the header,
+            // pushing the page down before any content. The service line stays;
+            // the secondary trust pills return from `sm` up.
             <span
               key={label}
-              className="flex items-center gap-1.5 text-[11px] tracking-[0.14em] text-subtle uppercase"
+              className="hidden items-center gap-1.5 text-[11px] tracking-[0.14em] text-subtle uppercase sm:flex"
             >
               <Icon className="size-3.5 text-accent" aria-hidden="true" />
               {label}

@@ -100,7 +100,7 @@ export const Route = createRootRoute({
             <PublicChat />
           </TooltipProvider>
         </AuthProvider>
-        <Toaster theme="light" position="bottom-right" />
+        <Toaster theme="dark" position="bottom-right" />
         <Analytics />
         <Scripts />
       </body>

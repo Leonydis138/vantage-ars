@@ -209,9 +209,11 @@ function HomePage() {
               title: "Founder-controlled execution",
               body: "Human judgment stays in charge of spend, customer commitments, and operational risk.",
             },
-          ].map((item) => (
+          ].map((item, index) => (
             <article key={item.title} className="rounded-2xl border border-border bg-surface/40 p-5">
-              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-accent">01</p>
+              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-accent">
+                {String(index + 1).padStart(2, "0")}
+              </p>
               <h3 className="mt-3 text-xl font-semibold text-fg">{item.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{item.body}</p>
             </article>

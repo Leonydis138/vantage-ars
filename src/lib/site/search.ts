@@ -258,14 +258,42 @@ function tokens(value: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Indexed copy, normalised so hyphenated compounds are findable however they
+ * are typed: "Wi-Fi" is indexed as "wi fi wifi", so "wifi", "wi-fi" and
+ * "wi fi" all match. Only compounds are joined — a plain word like "plan" is
+ * never indexed as "lan", so short queries keep matching whole words.
+ */
+function normalize(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[a-z0-9]+(?:-[a-z0-9]+)+/g, (word) => {
+      const joined = word.replace(/-/g, "");
+      return `${word.replace(/-/g, " ")} ${joined}`;
+    })
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/**
+ * Does `haystack` contain `needle`? Terms of four characters or more may be a
+ * prefix of a word, so "backup" still finds "backups". Shorter terms must be
+ * whole words: otherwise "lan" matches "plan" and "wi" matches "switch".
+ */
+function contains(haystack: string, needle: string): boolean {
+  return needle.length >= 4
+    ? haystack.includes(needle)
+    : ` ${haystack} `.includes(` ${needle} `);
+}
+
 function score(item: SearchItem, needles: string[]): number {
-  const title = item.title.toLowerCase();
-  const body = `${item.description} ${(item.keywords ?? []).join(" ")}`.toLowerCase();
+  const title = normalize(item.title);
+  const body = normalize(`${item.description} ${(item.keywords ?? []).join(" ")}`);
   let total = 0;
   for (const needle of needles) {
-    if (title.startsWith(needle)) total += 8;
-    else if (title.includes(needle)) total += 5;
-    else if (body.includes(needle)) total += 2;
+    if (needle.length >= 4 && title.startsWith(needle)) total += 8;
+    else if (contains(title, needle)) total += 5;
+    else if (contains(body, needle)) total += 2;
     else return 0;
   }
   if (title === needles.join(" ")) total += 12;

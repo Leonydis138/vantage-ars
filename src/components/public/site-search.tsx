@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -32,6 +32,7 @@ export function SiteSearch() {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
   const results = useMemo(() => searchSite(query), [query]);
 
   useEffect(() => {
@@ -63,7 +64,9 @@ export function SiteSearch() {
       event.preventDefault();
       const href = results[active].href;
       close();
-      window.location.assign(href);
+      // Client-side navigation: a full document load would throw away the
+      // in-page state and re-download the whole site for one result.
+      navigate({ to: href as never });
     }
   }
 

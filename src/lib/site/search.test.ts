@@ -91,6 +91,25 @@ describe("public site search", () => {
     );
   });
 
+  it("finds hyphenated terms however they are typed", () => {
+    for (const query of ["wifi", "wi-fi", "Wi Fi", "WIFI"]) {
+      assert.equal(
+        searchSite(query).some((item) => item.href === "/services/networking"),
+        true,
+        `"${query}" did not find the networking service`,
+      );
+      assert.equal(
+        searchSite(query).some((item) => item.kind === "guide"),
+        true,
+        `"${query}" did not find the Wi-Fi guide`,
+      );
+    }
+  });
+
+  it("does not match a short word inside a longer one", () => {
+    assert.deepEqual(searchSite("lan"), []);
+  });
+
   it("matches regardless of case and punctuation", () => {
     const plain = searchSite("backup review");
     const noisy = searchSite("  BACKUP, review!  ");
