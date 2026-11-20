@@ -11,6 +11,10 @@ export const Route = createFileRoute("/office")({
     meta: [{ title: "Sign in · Vantage-ARS" }, { name: "robots", content: "noindex" }],
   }),
   loader: () => getOfficeSnapshot(),
+  // The office snapshot is the whole book. Moving between office pages within
+  // a few seconds must not re-read and re-send it; every action still calls
+  // router.invalidate(), so a change is never hidden behind this window.
+  staleTime: 15_000,
   component: OfficeLayout,
   pendingComponent: OfficePending,
 });

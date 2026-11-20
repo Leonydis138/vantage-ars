@@ -173,15 +173,20 @@ export function buildBackup(
   tables: BackupTables,
   exportedAt: string = new Date().toISOString(),
 ): BackupFile {
+  // Hash exactly what the file will hold. A JSON round trip turns every Date
+  // (each table has timestamptz columns) into an ISO string and drops undefined
+  // keys, so a checksum taken over the in-memory rows could never match the
+  // same rows after the file is written and read back.
+  const normalized = JSON.parse(JSON.stringify(tables)) as BackupTables;
   const rowCounts: Record<string, number> = {};
-  for (const [name, rows] of Object.entries(tables)) rowCounts[name] = rows.length;
+  for (const [name, rows] of Object.entries(normalized)) rowCounts[name] = rows.length;
   return {
     format: "vantage-ars-backup",
     version: 1,
     exportedAt,
     rowCounts,
-    checksum: sha256Hex(stableStringify(tables)),
-    tables,
+    checksum: sha256Hex(stableStringify(normalized)),
+    tables: normalized,
   };
 }
 

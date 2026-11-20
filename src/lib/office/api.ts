@@ -174,8 +174,10 @@ export const getOfficeSnapshot = createServerFn({ method: "GET" })
       if (!context.founder) return { locked: true };
       // The founder opening the floor is the best possible moment to catch up,
       // so a stale scheduler is nudged before the snapshot is read. Founder-only
-      // on purpose: anonymous visits must never start work.
-      await nudgeScheduler({ data: { waitMs: 2_000 } }).catch(() => undefined);
+      // on purpose: anonymous visits must never start work. The wait is short:
+      // the nudge keeps running in the background, and the first office paint
+      // must not sit behind a whole tick.
+      await nudgeScheduler({ data: { waitMs: 750 } }).catch(() => undefined);
       return { locked: false, snapshot: await readSnapshot() };
     },
   );

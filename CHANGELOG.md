@@ -2,6 +2,33 @@
 
 All notable changes to Vantage-ARS.
 
+## 5.0.6 — 2026-11-20
+
+### Fixed
+
+**Guide articles render their own content.** `/guides` was a leaf route with no outlet, so every `/guides/<slug>` address served the article's title and structured data but painted the index list underneath. The index moved to `guides.index.tsx` behind the outlet, and all six guides — the five existing ones and the new field note — now show their own article.
+
+**The daily backup verifies.** The checksum was taken over the in-memory rows before the JSON round trip. Every office table has `timestamptz` columns, which PGLite returns as `Date` objects; `stableStringify` hashed each one as `{}`, while the written file held ISO strings, so a real export never matched its own checksum. The backup duty dead-lettered on every run and `/api/health` reported the office as degraded. The manifest is now normalised before hashing, so the checksum describes exactly what the file holds. A regression test covers timestamped rows.
+
+### Added
+
+**A SIP ALG field note.** `/guides/sip-alg-breaks-voip` explains why a router's SIP application-layer gateway breaks registration, audio and transfers, the order to confirm it in, and where the work stops. It is linked from the browser network-path tool and listed in the sitemap and site search.
+
+### Changed
+
+**Office pages read the book once.** The office layout keeps the loaded snapshot fresh for fifteen seconds, so moving between office pages no longer re-reads and re-sends every table. Every founder action still calls `router.invalidate()`, so a change is never hidden behind that window.
+
+**Faster first paint for the founder.** Opening the office nudges a stale scheduler, but the page no longer waits up to two seconds for a whole tick: the nudge is capped at 750 ms and the tick continues in the background.
+
+**Read-path indexes (migration `0018_read_paths.sql`).** The snapshot reads the newest rows of each book with `order by <time> desc limit n`; the original composite indexes could not serve an unfiltered newest-first sort. Single-column indexes now match the sort the queries actually use.
+
+### Verification
+
+- `tsc --noEmit` and `eslint` on the changed files: clean (route files keep the repo's existing fast-refresh warning).
+- Unit tests for backups, guides, tracked paths and site search: 33 passing, including the new timestamped-row regression.
+- The backup checksum was re-checked against real rows copied from the running office database: `verifyBackup` returns `ok: true` where it previously returned a mismatch.
+- In the running app: the new article renders its five sections, the index lists it, the tool link navigates to it, and the mobile layout has no horizontal overflow.
+
 ## 5.0.5 — 2026-10-24
 
 ### Added

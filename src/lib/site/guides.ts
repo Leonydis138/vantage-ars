@@ -279,6 +279,59 @@ export const GUIDES: Guide[] = [
     },
     relatedServices: ["managed-support", "it-infrastructure"],
   },
+  {
+    slug: "sip-alg-breaks-voip",
+    title: "SIP ALG breaks VoIP calls behind a router: what to check",
+    metaTitle: "SIP ALG and VoIP call failures · Vantage-ARS",
+    description:
+      "Why a router's SIP application-layer gateway can break registration, audio and transfers, and a practical order for confirming it before you change a rule.",
+    summary:
+      "A router feature meant to help VoIP often breaks it. Confirm the cause before you disable anything, and record what changed.",
+    updated: "2026-11-20",
+    readingMinutes: 5,
+    sections: [
+      {
+        heading: "What the feature does, and why it causes trouble",
+        paragraphs: [
+          "A SIP application-layer gateway, usually called SIP ALG, sits inside a router and tries to rewrite the addresses in VoIP signalling so calls work through address translation. SIP carries addresses inside the message body as well as in the packet header, and a router that rewrites them only partly, or in the wrong place, breaks the call rather than fixing it.",
+          "The result is a fault that looks like the provider, the handset or the network. Calls register and then drop, audio flows one way, transfers and hold fail, or a second handset on the same account cannot register at all. The same account can work perfectly on a mobile hotspot and fail only behind one router.",
+        ],
+      },
+      {
+        heading: "Confirm it before you change anything",
+        paragraphs: [
+          "Do not start by disabling settings on a router that carries the business. Gather evidence first, because a fault that disappears after a change is only useful if the same checks were run before it.",
+        ],
+        bullets: [
+          "Test the same account on a different network, such as a mobile hotspot. If it works there, the fault is more likely local to the site than at the provider.",
+          "Test a second handset or softphone behind the same router. If both fail the same way, the endpoint is less likely to be the cause.",
+          "Write down the exact symptom and the moment it happens: registration, the first thirty seconds of a call, a transfer, hold, or a second concurrent call.",
+          "Record the router's make, model and firmware, and export its configuration before touching a rule.",
+          "Look for the setting by its common names: SIP ALG, SIP helper, SIP transformation or NAT helper. Note whether it is on.",
+        ],
+      },
+      {
+        heading: "Change one thing, then repeat the same checks",
+        paragraphs: [
+          "If the evidence points at the router, turn off the SIP ALG alone — not the firewall, not address translation and not the whole security policy. Re-register the handset, then run exactly the checks that failed before. Record the result either way.",
+          "If the fault improves, keep the setting off and write down what changed so the next person does not switch it back on. If nothing improves, restore the previous setting and continue from the next layer: the local network, the internet path, or the provider's configuration.",
+          "Some routers supplied by an internet provider do not expose the setting, or reset it after an update. That is a conversation with the provider, not something to work around with an unsupported firmware change.",
+        ],
+      },
+      {
+        heading: "Where this work stops",
+        paragraphs: [
+          "This guide is general information, not a diagnosis of your network. Changing a router that carries calls, card payments or remote access can interrupt the business, so it belongs in a written scope with a way back.",
+          "If the router or the provider's equipment is outside what we are authorised to change, the fix is agreed with whoever owns it. A provider-side change is not something a support session can promise.",
+        ],
+      },
+    ],
+    faq: {
+      q: "Will disabling SIP ALG fix my calls?",
+      a: "Only if the ALG is the actual fault. If the same checks fail after it is off, restore the setting and keep looking at the network path or the provider. Measure first, then change one thing.",
+    },
+    relatedServices: ["voip", "networking"],
+  },
 ];
 
 export function guideBySlug(slug: string): Guide | undefined {

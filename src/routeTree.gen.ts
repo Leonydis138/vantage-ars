@@ -29,6 +29,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WorkRouteImport } from './routes/work'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiSiteSignalRouteImport } from './routes/api/site-signal'
+import { Route as GuidesIndexRouteImport } from './routes/guides.index'
 import { Route as GuidesSlugRouteImport } from './routes/guides.$slug'
 import { Route as OfficeIndexRouteImport } from './routes/office/index'
 import { Route as OfficeApprovalsRouteImport } from './routes/office/approvals'
@@ -157,6 +158,11 @@ const ApiSiteSignalRoute = ApiSiteSignalRouteImport.update({
   id: '/api/site-signal',
   path: '/api/site-signal',
   getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesIndexRoute = GuidesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => GuidesRoute,
 } as any)
 const GuidesSlugRoute = GuidesSlugRouteImport.update({
   id: '/$slug',
@@ -343,6 +349,7 @@ export interface FileRoutesByFullPath {
   '/services/$slug': typeof ServicesSlugRoute
   '/tools/email-auth': typeof ToolsEmailAuthRoute
   '/tools/network-path': typeof ToolsNetworkPathRoute
+  '/guides/': typeof GuidesIndexRoute
   '/office/': typeof OfficeIndexRoute
   '/services/': typeof ServicesIndexRoute
   '/api/ai/status': typeof ApiAiStatusRoute
@@ -356,7 +363,6 @@ export interface FileRoutesByTo {
   '/find': typeof FindRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/game': typeof GameRoute
-  '/guides': typeof GuidesRouteWithChildren
   '/login': typeof LoginRoute
   '/model': typeof ModelRoute
   '/privacy': typeof PrivacyRoute
@@ -391,6 +397,7 @@ export interface FileRoutesByTo {
   '/services/$slug': typeof ServicesSlugRoute
   '/tools/email-auth': typeof ToolsEmailAuthRoute
   '/tools/network-path': typeof ToolsNetworkPathRoute
+  '/guides': typeof GuidesIndexRoute
   '/office': typeof OfficeIndexRoute
   '/services': typeof ServicesIndexRoute
   '/api/ai/status': typeof ApiAiStatusRoute
@@ -442,6 +449,7 @@ export interface FileRoutesById {
   '/services/$slug': typeof ServicesSlugRoute
   '/tools/email-auth': typeof ToolsEmailAuthRoute
   '/tools/network-path': typeof ToolsNetworkPathRoute
+  '/guides/': typeof GuidesIndexRoute
   '/office/': typeof OfficeIndexRoute
   '/services/': typeof ServicesIndexRoute
   '/api/ai/status': typeof ApiAiStatusRoute
@@ -494,6 +502,7 @@ export interface FileRouteTypes {
     | '/services/$slug'
     | '/tools/email-auth'
     | '/tools/network-path'
+    | '/guides/'
     | '/office/'
     | '/services/'
     | '/api/ai/status'
@@ -507,7 +516,6 @@ export interface FileRouteTypes {
     | '/find'
     | '/forgot-password'
     | '/game'
-    | '/guides'
     | '/login'
     | '/model'
     | '/privacy'
@@ -542,6 +550,7 @@ export interface FileRouteTypes {
     | '/services/$slug'
     | '/tools/email-auth'
     | '/tools/network-path'
+    | '/guides'
     | '/office'
     | '/services'
     | '/api/ai/status'
@@ -592,6 +601,7 @@ export interface FileRouteTypes {
     | '/services/$slug'
     | '/tools/email-auth'
     | '/tools/network-path'
+    | '/guides/'
     | '/office/'
     | '/services/'
     | '/api/ai/status'
@@ -769,6 +779,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/site-signal'
       preLoaderRoute: typeof ApiSiteSignalRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/guides/': {
+      id: '/guides/'
+      path: '/'
+      fullPath: '/guides/'
+      preLoaderRoute: typeof GuidesIndexRouteImport
+      parentRoute: typeof GuidesRoute
     }
     '/guides/$slug': {
       id: '/guides/$slug'
@@ -971,10 +988,12 @@ declare module '@tanstack/react-router' {
 
 interface GuidesRouteChildren {
   GuidesSlugRoute: typeof GuidesSlugRoute
+  GuidesIndexRoute: typeof GuidesIndexRoute
 }
 
 const GuidesRouteChildren: GuidesRouteChildren = {
   GuidesSlugRoute: GuidesSlugRoute,
+  GuidesIndexRoute: GuidesIndexRoute,
 }
 
 const GuidesRouteWithChildren =

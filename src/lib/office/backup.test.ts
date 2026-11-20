@@ -10,6 +10,18 @@ describe("backup", () => {
     assert.deepEqual(file.rowCounts, { leads: 1, approvals: 0 });
     assert.deepEqual(verifyBackup(JSON.parse(JSON.stringify(file))), { ok: true });
   });
+  it("verifies after a round trip when rows carry timestamps", () => {
+    // Every office table has timestamptz columns, which PGLite returns as Date
+    // objects. A backup that only verified with plain strings never verified a
+    // real export.
+    const withDates = {
+      leads: [{ id: "a", created_at: new Date("2026-10-05T09:30:00.000Z") }],
+    };
+    const file = buildBackup(withDates);
+    const roundTripped = JSON.parse(JSON.stringify(file));
+    assert.deepEqual(verifyBackup(roundTripped), { ok: true });
+    assert.equal(roundTripped.tables.leads[0].created_at, "2026-10-05T09:30:00.000Z");
+  });
   it("detects an edited row", () => {
     const file = JSON.parse(JSON.stringify(buildBackup(tables)));
     file.tables.leads[0].name = "Someone Else";

@@ -32,6 +32,7 @@ export const TRACKED_PATHS = [
   "/guides/wifi-drops",
   "/guides/change-without-rollback",
   "/guides/prepare-for-remote-support",
+  "/guides/sip-alg-breaks-voip",
   "/tools/email-auth",
   "/tools/network-path",
 ] as const;

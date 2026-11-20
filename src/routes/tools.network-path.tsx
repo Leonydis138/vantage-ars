@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { PublicFrame } from "@/components/public/site-frame";
@@ -64,6 +64,18 @@ function NetworkPathPage() {
           This check asks your browser to gather WebRTC ICE candidates using Google’s public STUN
           server. The browser reports only candidate types and transports to this page; candidate
           addresses are not shown or attached to a support request.
+        </p>
+
+        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted">
+          A router feature called SIP ALG is a common cause of calls that register and then fail.{" "}
+          <Link
+            to="/guides/$slug"
+            params={{ slug: "sip-alg-breaks-voip" }}
+            className="text-accent underline-offset-4 hover:underline"
+          >
+            Read the checklist
+          </Link>{" "}
+          before you change a router setting.
         </p>
 
         <section className="glass mt-8 space-y-5 rounded-2xl p-5">
